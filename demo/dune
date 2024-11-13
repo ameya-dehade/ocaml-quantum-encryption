@@ -1,5 +1,13 @@
 (library
-  (name Owldemo)
+  (name owldemo)
+  (modules owldemo)
   (libraries
     core
+    owl))
+
+(library
+  (name zarithdemo)
+  (modules zarithdemo)
+  (libraries
+    zarith
     owl))
