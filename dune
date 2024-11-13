@@ -3,6 +3,8 @@
   (deps 
     src/submission.ml
     src/dune
+    demo/owldemo.ml
+    demo/dune
     test/tests.ml
     test/dune
   )
