@@ -14,7 +14,14 @@
 
 (library
   (name polynomialsdemo)
-  (modules polynomialsdemo)
+  (modules polynomialsffdemo)
   (libraries
     polynomial
     ff))
+
+(library
+  (name miragecrypto)
+  (modules miragecryptodemo)
+  (libraries
+    mirage-crypto
+    mirage-crypto-rng))
