@@ -11,3 +11,10 @@
   (libraries
     zarith
     owl))
+
+(library
+  (name polynomialsdemo)
+  (modules polynomialsdemo)
+  (libraries
+    polynomial
+    ff))

@@ -5,6 +5,7 @@
     src/dune
     demo/owldemo.ml
     demo/zarithdemo.ml
+    demo/polynomialsdemo.ml
     demo/dune
     test/tests.ml
     test/dune
