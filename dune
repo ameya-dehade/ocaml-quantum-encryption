@@ -1,15 +1,13 @@
 (rule
-  (target assignment1.zip)
+  (target project.zip)
   (deps 
-    src/submission.ml
+    src/algorithm/kyber.ml
     src/dune
     demo/owldemo.ml
     demo/zarithdemo.ml
     demo/polynomialsffdemo.ml
     demo/miragecryptodemo.ml
     demo/dune
-    test/tests.ml
-    test/dune
   )
   (action
-    (run zip -R assignment1.zip %{deps})))
+    (run zip -R project.zip %{deps})))

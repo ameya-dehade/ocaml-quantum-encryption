@@ -1,6 +1,0 @@
-(library
-  (name submission)
-  (libraries
-    core))
-
-
