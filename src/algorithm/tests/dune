@@ -1,0 +1,6 @@
+(test
+  (name kyber_tests)
+  (libraries
+    core
+    ounit2
+    kyber))

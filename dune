@@ -1,8 +1,8 @@
 (rule
   (target project.zip)
   (deps 
-    src/algorithm/kyber.ml
-    src/dune
+    src/algorithm/logic/kyber.ml
+    src/algorithm/tests/kyber_tests.ml
     demo/owldemo.ml
     demo/zarithdemo.ml
     demo/polynomialsffdemo.ml

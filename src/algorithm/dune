@@ -1,7 +1,0 @@
-(library
-  (name kyber)
-  (modules kyber)
-  (libraries
-    core
-    polynomial
-    ff))
