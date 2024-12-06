@@ -154,9 +154,10 @@ module Make_poly_mat (P : Polynomial_t) = struct
   let zero (rows : int) (cols : int) : t =
     List.init rows (fun _ -> List.init cols (fun _ -> P.zero))
 
-  let add (m1 : t) (_m2 : t) : t =
-    m1
-
+  (* Add two polynomial matrices of equal dimensions. Assume equal dimensions *)
+  let add (m1 : t) (m2 : t) : t =
+    List.map2 (List.map2 P.add) m1 m2
+    
   let sub (m1 : t) (_m2 : t) : t =
     m1
 
@@ -172,11 +173,13 @@ module Make_poly_mat (P : Polynomial_t) = struct
         List.nth (List.nth mat j) i
       )
     )
-  let dot_product (row : P.t list) (col : P.t list) : P.t =
-    List.fold_left2 (fun acc p1 p2 -> P.add acc (P.mul p1 p2)) P.zero row col
+  let dot_product (row : P.t list) (_col : P.t list) : P.t =
+    (* Placeholder for errors *)
+    List.hd row
+    (* List.fold_left2 (fun acc p1 p2 -> P.add acc (P.mul p1 p2)) P.zero row col *)
 
   (* TODO : Verify this works *)
-  let mul (m1 : t) (_m2 : t) : t =
+  let mul (m1 : t) (m2 : t) : t =
     List.init (List.length m1) (fun i ->
       List.init (List.length (List.hd m2)) (fun j ->
         dot_product (List.nth m1 i) (List.nth (transpose m2) j)

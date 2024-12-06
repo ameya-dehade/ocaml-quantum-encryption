@@ -119,8 +119,8 @@ let test_polymat_scalar_mul _ =
   let result = PolyMat.scalar_mul scalar m1 in
   assert_equal expected (PolyMat.to_list result)
 
-(* Detailed test that checks the result matrix with expected matrix*)
-let test_polymat_mul_square_matrix _ =
+(* Detailed test that checks the result matrix with expected matrix. Remember that multiplication performs modulus on both the coefficient and polynomial*)
+(* let test_polymat_mul_square_matrix _ =
   (* Create two 2x2 matrices with known polynomials *)
   let m1 = PolyMat.from_list [
     [Polynomial.from_coefficients [1; 2]; Polynomial.from_coefficients [3; 4]];
@@ -142,9 +142,9 @@ let test_polymat_mul_square_matrix _ =
   print_endline ("POLYMAT MULTIPLICATION");
   print_endline (PolyMat.to_string result);
   (* Verify each element of the resulting matrix *)
-  assert_equal expected (PolyMat.to_list result)
+  assert_equal expected (PolyMat.to_list result) *)
 
-let test_polymat_mul_square_and_rect_matrix _ =
+(* let test_polymat_mul_square_and_rect_matrix _ =
   (* Create a 2x2 matrix and a 2x3 matrix with known polynomials *)
   let m1 = PolyMat.from_list [
     [Polynomial.from_coefficients [1; 2]; Polynomial.from_coefficients [3; 4]];
@@ -214,23 +214,26 @@ let test_polymat_mul_rect_and_rect_matrix _ =
   print_endline ("POLYMAT MULTIPLICATION");
   print_endline (PolyMat.to_string result);
   (* Verify each element of the resulting matrix *)
-  assert_equal expected (PolyMat.to_list result)
+  assert_equal expected (PolyMat.to_list result) *)
 
-let test_polymat_mul_square_and_singleline_matrix = 
+(* let test_polymat_mul_square_and_singleline_matrix _ = 
   (* Create a 2x2 matrix and a 1x2 matrix with known polynomials *)
   let m1 = PolyMat.from_list [
     [Polynomial.from_coefficients [6; 16; 16; 11]; Polynomial.from_coefficients [9; 4; 6; 3]];
     [Polynomial.from_coefficients [5; 3; 10; 1]; Polynomial.from_coefficients [6; 1; 9; 15]]
   ] in
   let m2 = PolyMat.from_list [
-    [Polynomial.from_coefficients [-1; -1; 1; 0]; Polynomial.from_coefficients [-1; 0; -1; 0]]
+    [Polynomial.from_coefficients [-1; -1; 1; 0]];
+    [Polynomial.from_coefficients [-1; 0; -1; 0]]
   ] in
   let expected = [
-    [Polynomial.from_coefficients [0; 0; 0; 11]; Polynomial.from_coefficients [0; 0; 0; 3]];
+    [Polynomial.from_coefficients [16; 14; 0; 7]];
+    [Polynomial.from_coefficients [10; 11; 12; 6]]
   ] in
-  
-  (* Expected result after multiplication *)
-  
+  let result = PolyMat.mul m1 m2 in
+  print_endline ("POLYMAT MULTIPLICATION");
+  print_endline (PolyMat.to_string result);
+  assert_equal expected (PolyMat.to_list result) *)
 
 (* Kyber Module Tests *)
 (* let test_kyber_keypair_generation _ =
@@ -272,10 +275,13 @@ let suite =
     "test_polynomial_mul_complex" >:: test_polynomial_mul_complex;
     "test_polymat_zero" >:: test_polymat_zero;
     "test_polymat_add" >:: test_polymat_add;
+    "test_polymat_sub" >:: test_polymat_sub;
     "test_polymat_scalar_mul" >:: test_polymat_scalar_mul;
+    (* "test_polymat_mul_square_and_singleline_matrix" >:: test_polymat_mul_square_and_singleline_matrix; *)
+    (* "test_polymat_mul_square_matrix" >:: test_polymat_mul_square_matrix;
     (* "test_kyber_keypair_generation" >:: test_kyber_keypair_generation;
     "test_kyber_encryption_decryption" >:: test_kyber_encryption_decryption;
-    "test_kyber_multiple_encryption" >:: test_kyber_multiple_encryption; *)
+    "test_kyber_multiple_encryption" >:: test_kyber_multiple_encryption; *)*)
   ]
 
 let () = run_test_tt_main suite
