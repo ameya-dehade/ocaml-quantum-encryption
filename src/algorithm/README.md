@@ -1,3 +1,4 @@
+# ALGORITHM README
 This folder deals with the implementation and logic of the Kyber algorithm.
 - The modules Polynomial, PolyMat and Kyber are implemented through functors in this folder
 - All modules and module functions are tested with 90%+ code coverage
