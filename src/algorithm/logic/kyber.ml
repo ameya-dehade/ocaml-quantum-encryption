@@ -1,12 +1,11 @@
 (** Baby Kyber Library Implementation *)
 (* TODO : You should have a Readme.md that explains your progress so far: what is working, what is not, etc. *)
-
+(* TODO : Option type *)
 module type Kyber_Config_sig = sig
   val q : int
   val n : int
   val k : int
   val n1 : int
-  val n2 : int
 end
 
 module type Polynomial_t = sig
@@ -20,31 +19,37 @@ module type Polynomial_t = sig
   val scalar_mul : int -> t -> t
   val scalar_div : int -> t -> t
   val reduce : t -> t
+  val add_and_reduce : t -> t -> t
+  val sub_and_reduce : t -> t -> t
+  val mul_and_reduce : t -> t -> t
   val round : t -> t
   val binary_to_poly : bytes -> t
   val poly_to_binary : t -> bytes
   val from_coefficients : int list -> t
   val to_coefficients : t -> int list
   val to_string : t -> string
-  val random : t
+  val random : unit -> t
+  val random_small_coeff : unit -> t
 end
 
 module Kyber_Config : Kyber_Config_sig = struct
-  let q = 17 (* Could be 3329 *)
-  let n = 4  (* Could be 256 *)
+  let q = 17 (* TODO : Make this 3329 for actual use *)
+  let n = 3  (* TODO : Make this 256 for actual use*)
   let k = 2  (* Could be 3 or 4 *)
-  let n1 = 3
-  let n2 = 2
+  let n1 = 2
 end
 
+(* TODO : make generic based on degree n *)
 module Make_polynomial (C : Kyber_Config_sig) : Polynomial_t = struct
   let modulus_q = C.q
-  let n = C.n
+  let n = C.n + 1
+  let n1 = C.n1
   (** Polynomial operations *)
 
   type t = int list
   (* Type representing a polynomial as a list of coefficients *)
-  let modulus_poly = [1; 0; 0; 0; 1] (* x^4 + 1 *)
+  let modulus_poly = [1; 0; 0; 0; 1]
+     (* x^n + 1 *)
   let zero = []
   (** The zero polynomial *)
 
@@ -61,46 +66,31 @@ module Make_polynomial (C : Kyber_Config_sig) : Polynomial_t = struct
 
   let add (p1 : t) (p2 : t) : t =
     let (padded_p1, padded_p2) = padding p1 p2 in
-    try
-      List.map2 ( + ) padded_p1 padded_p2
-    with Invalid_argument _ ->
-      failwith "Invalid padding"
-  (** Add two polynomials. Make sure this handles different length polynomials as well *)
+    List.map2 ( + ) padded_p1 padded_p2
 
   let sub (p1 : t) (p2 : t) : t =
     let (padded_p1, padded_p2) = padding p1 p2 in
-    try
-      List.map2 ( - ) padded_p1 padded_p2
-    with Invalid_argument _ ->
-      failwith "Invalid padding"
-  (** Subtract two polynomials *)
+    List.map2 ( - ) padded_p1 padded_p2
 
   let scalar_mul (scalar : int) (p : t) : t =
     List.map (fun coef -> scalar * coef) p
-  (** Multiply a polynomial by a scalar *)
 
   let scalar_div (scalar : int) (p : t) : t =
     List.map (fun coef -> coef / scalar) p
-  (** Divide a polynomial by a scalar *)
 
-  (* TODO: Test this to verify *)
-  let mul (p1 : t) (p2 : t) : t =
-    let rec front_add p1 p2 =
-      match p1, p2 with
-      | [], p | p, [] -> p
-      | h1 :: t1, h2 :: t2 -> (h1 + h2) :: front_add t1 t2
+  let mul (p1 : t)(p2 : t) : t =
+    let rec front_add a b = match a, b with
+    | [], r | r, [] -> r
+    | x::xs, y::ys -> (x + y) :: front_add xs ys
     in
-    let rec mul_aux p1 p2 shift acc =
-      match p1 with
+    let rec mul_acc acc p q d = match p with
       | [] -> acc
-      | h :: t ->
-          let shifted_p2 = List.init shift (fun _ -> 0) @ List.map (( * ) h) p2 in
-          mul_aux t p2 (shift + 1) (front_add acc shifted_p2)
+      | x::xs ->
+        let shifted = List.init d (fun _ -> 0) @ List.map (fun c -> x * c) q in
+        mul_acc (front_add acc shifted) xs q (d + 1)
     in
-    mul_aux p1 p2 0 []
-  (** Multiply two polynomials *)
+    mul_acc [] p1 p2 0
 
-  (* TODO: Test this to verify *)
   let reduce (p : t) : t =
     let rec poly_mod p m =
       let degree_p = List.length p - 1 in
@@ -114,37 +104,49 @@ module Make_polynomial (C : Kyber_Config_sig) : Polynomial_t = struct
         poly_mod (List.tl reduced) m
     in
     let mod_coeffs = poly_mod p modulus_poly in
-    List.map (fun coef -> coef mod modulus_q) mod_coeffs
-  (** Reduce a polynomial modulo q and degree n *)
+    List.map (fun coef -> ((coef mod modulus_q) + modulus_q) mod modulus_q) mod_coeffs
+
+
+  let add_and_reduce (p1 : t) (p2 : t) : t =
+    reduce (add p1 p2)
+
+  let sub_and_reduce (p1 : t) (p2 : t) : t =
+    reduce (sub p1 p2)
+
+  let mul_and_reduce (p1 : t) (p2 : t) : t =
+    reduce (mul p1 p2)
 
   let round (p : t) : t =
-    List.map (fun coef -> if abs (coef - modulus_q) < abs coef then modulus_q else 0) p
-  (** Round a polynomial's coefficients to either q/2 or 0, whichever is closer *)
+    let round_to_q_or_0 coeff =
+      let q_over_2 = (modulus_q + 1) / 2 in
+      let delta = q_over_2 / 2 in
+      if abs (coeff - q_over_2) < delta then
+        q_over_2
+      else
+        0
+    in 
+    List.map round_to_q_or_0 p
 
-  (** Convert a binary list to a polynomial. Every bit of the message is used as a coefficient *)
   let binary_to_poly (message : bytes) : t =
     
     List.init (Bytes.length message) (fun i -> if Bytes.get message i = '\x01' then 1 else 0)
-  (** Convert a binary list to a polynomial *)
         
   let poly_to_binary (p : t) : bytes =
     Bytes.init (List.length p) (fun i -> if List.nth p i = 1 then '\x01' else '\x00')
-  (** Convert a polynomial to a binary list *)
 
   let from_coefficients coeffs = coeffs
-  (** Create a polynomial from a list of coefficients *)
   
   let to_coefficients p = p
-  (* * Convert a polynomial to a list of coefficients *)
 
   let to_string p =
     List.fold_left (fun acc coef -> acc ^ (string_of_int coef) ^ " ") "" p
-  (** Convert a polynomial to a string *)
 
-  (* TODO: Create non-trivial random function, that can also give negative but small coefficients *)
-  let random =
+  let random _ =
     List.init n (fun _ -> Random.int modulus_q)
-  (** Generate a random polynomial of given degree *)
+
+  (* TODO : Allow negative *)
+  let random_small_coeff _ =
+    List.init n (fun _ -> Random.int n1)
 end
 
 module Polynomial = Make_polynomial(Kyber_Config)
@@ -154,15 +156,14 @@ module Make_poly_mat (P : Polynomial_t) = struct
   let zero (rows : int) (cols : int) : t =
     List.init rows (fun _ -> List.init cols (fun _ -> P.zero))
 
-  (* Add two polynomial matrices of equal dimensions. Assume equal dimensions *)
-  let add (m1 : t) (m2 : t) : t =
-    List.map2 (List.map2 P.add) m1 m2
-    
-  let sub (m1 : t) (_m2 : t) : t =
-    m1
-
   let scalar_mul (scalar : int) (mat : t) : t =
     List.map (List.map (P.scalar_mul scalar)) mat
+
+  let add (m1 : t) (m2 : t) : t =
+    List.map2 (List.map2 P.add_and_reduce) m1 m2
+
+  let sub (m1 : t) (m2 : t) : t =
+    List.map2 (List.map2 P.sub_and_reduce) m1 m2
 
   let scalar_div (scalar : int) (mat : t) : t =
     List.map (List.map (P.scalar_div scalar)) mat
@@ -173,12 +174,10 @@ module Make_poly_mat (P : Polynomial_t) = struct
         List.nth (List.nth mat j) i
       )
     )
-  let dot_product (row : P.t list) (_col : P.t list) : P.t =
-    (* Placeholder for errors *)
-    List.hd row
-    (* List.fold_left2 (fun acc p1 p2 -> P.add acc (P.mul p1 p2)) P.zero row col *)
+  let dot_product (row : P.t list) (col : P.t list) : P.t =
+    List.fold_left2 (fun acc p1 p2 -> P.add acc (P.mul p1 p2)) P.zero row col
+    |> P.reduce
 
-  (* TODO : Verify this works *)
   let mul (m1 : t) (m2 : t) : t =
     List.init (List.length m1) (fun i ->
       List.init (List.length (List.hd m2)) (fun j ->
@@ -189,9 +188,11 @@ module Make_poly_mat (P : Polynomial_t) = struct
   let reduce_matrix (mat : t) : t =
     List.map (List.map P.reduce) mat
 
-  (** Generate a random polynomial matrix of given dimensions and polynomial degree *)
   let random (rows : int) (cols : int) : t =
-    List.init rows (fun _ -> List.init cols (fun _ -> P.random))
+    List.init rows (fun _ -> List.init cols (fun _ -> P.random ()))
+
+  let random_small_coeff (rows : int) (cols : int) : t =
+    List.init rows (fun _ -> List.init cols (fun _ -> P.random_small_coeff ()))
 
   let get_poly (mat : t) (i : int) (j : int) : P.t =
     List.nth (List.nth mat i) j
@@ -209,11 +210,9 @@ module Make_poly_mat (P : Polynomial_t) = struct
   let map_poly (f : P.t -> P.t) (mat : t) : t =
     List.map (List.map f) mat
   
-  (** Convert a PolyMat to an Polynomial list of lists *)
   let to_list (mat : t) : P.t list list =
     mat
 
-  (** Convert a Polynomial list of lists to a PolyMat *)
   let from_list (mat : P.t list list) : t =
     mat
 
@@ -231,7 +230,7 @@ module type Kyber_t = sig
   type private_key = PolyMat.t
   type ciphertext = PolyMat.t * PolyMat.t
 
-  val generate_keypair : public_key * private_key
+  val generate_keypair : unit -> public_key * private_key
   val encrypt : public_key -> bytes -> ciphertext
   val decrypt : private_key -> ciphertext -> bytes
 end
@@ -242,28 +241,34 @@ module Make_Kyber (C : Kyber_Config_sig) (P : Polynomial_t) : Kyber_t = struct
   type private_key = PolyMat.t
   type ciphertext = PolyMat.t * PolyMat.t
   let q = C.q
-  (* let n = C.n *)
   let k = C.k
 
-  let generate_keypair =
-    let priv_key : private_key = PolyMat.reduce_matrix (PolyMat.random 1 k) in
+  let generate_keypair _ =
+    let priv_key : private_key = PolyMat.reduce_matrix (PolyMat.random_small_coeff k 1) in
     let a = PolyMat.reduce_matrix (PolyMat.random k k) in
-    let error = PolyMat.reduce_matrix (PolyMat.random 1 k) in
+    let error = PolyMat.reduce_matrix (PolyMat.random_small_coeff k 1) in
     let t = PolyMat.reduce_matrix (PolyMat.add (PolyMat.mul a priv_key) error) in
     let pub_key : public_key = (a, t) in
     (pub_key, priv_key)
 
   let encrypt (pub_key : public_key) (message : bytes) : ciphertext =
     let calculate_u (a : PolyMat.t) (r : PolyMat.t) (e1 : PolyMat.t) : PolyMat.t =
-      PolyMat.add (PolyMat.mul (PolyMat.transpose a) r) e1
+      let a_transpose = PolyMat.transpose a in
+      let mul_r = PolyMat.mul a_transpose r in
+      let add_e1 = PolyMat.add mul_r e1 in
+      add_e1
     in
     let calculate_v (t : PolyMat.t) (r : PolyMat.t) (e2 : PolyMat.t) (scaled_msg : PolyMat.t) : PolyMat.t =
-      PolyMat.add (PolyMat.mul (PolyMat.transpose t) r) (PolyMat.add e2 scaled_msg)
+      let t_transpose = PolyMat.transpose t in
+      let mul_r = PolyMat.mul t_transpose r in
+      let add_e2 = PolyMat.add mul_r e2 in
+      let add_msg = PolyMat.add add_e2 scaled_msg in
+      add_msg
     in
-    let r = PolyMat.reduce_matrix (PolyMat.random 1 2) in
-    let e1 = PolyMat.reduce_matrix (PolyMat.random 1 2) in
-    let e2 = PolyMat.reduce_matrix (PolyMat.random 1 1) in
-    let scaled_msg = Polynomial.scalar_mul (q / 2) (Polynomial.binary_to_poly message) in
+    let r = PolyMat.reduce_matrix (PolyMat.random_small_coeff k 1) in
+    let e1 = PolyMat.reduce_matrix (PolyMat.random_small_coeff k 1) in
+    let e2 = PolyMat.reduce_matrix (PolyMat.random_small_coeff 1 1) in
+    let scaled_msg = Polynomial.scalar_mul ((q + 1) / 2) (Polynomial.binary_to_poly message) in
     let zero_mat = PolyMat.zero 1 1 in
     let scaled_msg_mat = PolyMat.set_poly zero_mat 0 0 scaled_msg in
     let u = calculate_u (fst pub_key) r e1 in
@@ -276,7 +281,7 @@ module Make_Kyber (C : Kyber_Config_sig) (P : Polynomial_t) : Kyber_t = struct
     let noisy_result = PolyMat.sub v (PolyMat.mul (PolyMat.transpose s) u) in
     let noisy_poly = PolyMat.get_poly noisy_result 0 0 in
     let rounded_poly = Polynomial.round noisy_poly in
-    let result_poly = Polynomial.scalar_div (q / 2) rounded_poly in
+    let result_poly = Polynomial.scalar_div ((q + 1) / 2) rounded_poly in
     let result = Polynomial.poly_to_binary result_poly in
     result
 end

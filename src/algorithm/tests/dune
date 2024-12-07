@@ -1,6 +1,10 @@
 (test
-  (name kyber_tests)
+  (name test_runner)
   (libraries
     core
     ounit2
-    kyber))
+    kyber)
+  (modules 
+    polynomial_tests
+    kyber_tests 
+    test_runner))

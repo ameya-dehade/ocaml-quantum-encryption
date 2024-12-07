@@ -1,19 +1,9 @@
 (** Baby Kyber Library Interface *)
-(* TODO : Modularize parameters like
-  q : currently 17 but could be 3329
-  n : currently 4 but could be 256
-  k : currently 2 but could be 3 or 4
-
-*)
-
-(* TODO: ASK HOW TO DO PRECONDITIONS *)
-
 module type Kyber_Config_sig = sig
   val q : int
   val n : int
   val k : int
   val n1 : int
-  val n2 : int
 end
 
 module Polynomial : sig
@@ -41,7 +31,16 @@ module Polynomial : sig
   (** Divide a polynomial by a scalar *)
 
   val reduce : t -> t
-  (** Reduce a polynomial modulo q and degree n *)
+  (** Reduce a polynomial modulo q and degree n. If a coefficient is negative, make sure it becomes positive *)
+
+  val add_and_reduce : t -> t -> t
+  (** Add two polynomials and reduce the result *)
+
+  val sub_and_reduce : t -> t -> t
+  (** Subtract two polynomials and reduce the result *)
+
+  val mul_and_reduce : t -> t -> t
+  (** Multiply two polynomials and reduce the result *)
 
   val round : t -> t
   (** Round a polynomial's coefficients to either q/2 or 0, whichever is closer *)
@@ -61,8 +60,11 @@ module Polynomial : sig
   val to_string : t -> string
   (** Convert a polynomial to a string *)
 
-  val random : t
+  val random : unit -> t
   (** Generate a random polynomial of given degree *)
+
+  val random_small_coeff : unit -> t
+  (** Generate a random polynomial of given degree with small coefficients, as determined by n1 *)
 end
 
 module PolyMat : sig
@@ -93,10 +95,13 @@ module PolyMat : sig
   (** Compute the dot product of two lists of polynomials *)
 
   val mul : t -> t -> t
-  (** Multiply two polynomial matrices *)
+  (** Multiply two polynomial matrices*)
 
   val random : int -> int -> t
   (** Generate a random polynomial matrix of given dimensions and polynomial degree *)
+
+  val random_small_coeff : int -> int -> t
+  (** Generate a random polynomial matrix of given dimensions and polynomial degree with small coefficients *)
 
   val get_poly : t -> int -> int -> Polynomial.t
   (** Get a polynomial at a specific position *)
@@ -132,7 +137,7 @@ module Kyber : sig
   type ciphertext = PolyMat.t * PolyMat.t
   (** Type representing a ciphertext (two polynomial vectors), u and v *)
 
-  val generate_keypair : public_key * private_key
+  val generate_keypair : unit -> public_key * private_key
   (** Generate a public and private key pair *)
 
   val encrypt : public_key -> bytes -> ciphertext
