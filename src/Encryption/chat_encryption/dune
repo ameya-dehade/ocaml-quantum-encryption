@@ -6,4 +6,5 @@
     kyber
     mirage-crypto
     mirage-crypto-rng
-    mirage-crypto-rng-async))
+    mirage-crypto-rng-async)
+    (preprocess (pps bisect_ppx)))
