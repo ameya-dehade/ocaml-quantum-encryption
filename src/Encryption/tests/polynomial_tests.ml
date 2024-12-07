@@ -54,16 +54,12 @@ let test_polynomial_mul_complex _ =
   let p1 = Polynomial.from_coefficients [1; 0; 4; 21] in
   let p2 = Polynomial.from_coefficients [3; 1; 2] in
   let result = Polynomial.mul_and_reduce p1 p2 in
-  print_endline ("COMPLEX RESULT: ");
-  print_endline (Polynomial.to_string result);
   assert_equal [14; 16; 9; 7] (Polynomial.to_coefficients result)
 
 let test_polynomial_mul_complex_2 _ =
   let p1 = Polynomial.from_coefficients [1; 2; 45] in
   let p2 = Polynomial.from_coefficients [1; 0; 0; 7; 0; 0; 1] in
   let result = Polynomial.mul_and_reduce p1 p2 in
-  print_endline ("COMPLEX RESULT: ");
-  print_endline (Polynomial.to_string result);
   assert_equal [7; 7; 12; 15] (Polynomial.to_coefficients result)
 
 (* PolyMat Module Tests *)

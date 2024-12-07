@@ -17,7 +17,7 @@ end
 
 module Kyber_Config_test : Kyber_Config_sig = struct
   let q = 17
-  let n = 3
+  let n = 4
   let k = 2
   let n1 = 3
   let n2 = 2
