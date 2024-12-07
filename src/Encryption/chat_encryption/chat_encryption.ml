@@ -41,6 +41,12 @@ open Kyber
 
 module ChatEncryption = struct
 
+  module Polynomial = Make_polynomial(Kyber_Config)
+  module KyberKEM = Make_Kyber(Kyber_Config)(Polynomial)
+  type public_key = KyberKEM.public_key
+  type private_key = KyberKEM.private_key
+  type ciphertext = KyberKEM.ciphertext
+  
   let randomness_setup () =
     Mirage_crypto_rng_unix.initialize (module Mirage_crypto_rng.Fortuna)
 

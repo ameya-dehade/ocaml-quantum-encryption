@@ -37,9 +37,11 @@
 
   @see 'Polynomial' for polynomial arithmetic operations
   @see 'PolyMat' for matrix operations
+
 *)
 
 (** Baby Kyber Library Interface *)
+
 module type Kyber_Config_sig = sig
   val q : int
   val n : int
@@ -48,146 +50,143 @@ module type Kyber_Config_sig = sig
   val n2 : int
 end
 
-module Polynomial : sig
-  (** Polynomial operations *)
+module Kyber_Config : Kyber_Config_sig
+module Kyber_Config_test : Kyber_Config_sig
 
+(** 
+  Module type for polynomial operations.
+  @type t - Abstract type representing a polynomial.
+  @val modulus_q - The modulus value for polynomial coefficients.
+  @val modulus_poly - The modulus polynomial represented as a list of coefficients.
+  @val zero - The zero polynomial.
+  @val add - Adds two polynomials.
+  @val sub - Subtracts the second polynomial from the first.
+  @val mul - Multiplies two polynomials.
+  @val scalar_mul - Multiplies a polynomial by a scalar.
+  @val scalar_div - Divides a polynomial by a scalar.
+  @val reduce - Reduces a polynomial modulo the modulus polynomial.
+  @val add_and_reduce - Adds two polynomials and reduces the result.
+  @val sub_and_reduce - Subtracts the second polynomial from the first and reduces the result.
+  @val mul_and_reduce - Multiplies two polynomials and reduces the result.
+  @val round - Rounds the coefficients of a polynomial to around an input value.
+  @val binary_to_poly - Converts a byte sequence to a polynomial.
+  @val poly_to_binary - Converts a polynomial to a byte sequence.
+  @val from_coefficients - Creates a polynomial from a list of coefficients.
+  @val to_coefficients - Converts a polynomial to a list of coefficients.
+  @val to_string - Converts a polynomial to its string representation.
+  @val random - Generates a random polynomial.
+  @val random_small_coeff - Generates a random polynomial with small coefficients.
+*)
+
+module type Polynomial_t = sig
   type t
-  (** Type representing a polynomial *)
- 
+  val modulus_q : int
+  val modulus_poly : int list
   val zero : t
-  (** The zero polynomial *)
-
   val add : t -> t -> t
-  (** Add two polynomials *)
-
   val sub : t -> t -> t
-  (** Subtract two polynomials *)
-
   val mul : t -> t -> t
-  (** Multiply two polynomials *)
-
   val scalar_mul : int -> t -> t
-  (** Multiply a polynomial by a scalar *)
-
   val scalar_div : int -> t -> t
-  (** Divide a polynomial by a scalar *)
-
   val reduce : t -> t
-  (** Reduce a polynomial modulo q and degree n. If a coefficient is negative, make sure it becomes positive *)
-
   val add_and_reduce : t -> t -> t
-  (** Add two polynomials and reduce the result *)
-
   val sub_and_reduce : t -> t -> t
-  (** Subtract two polynomials and reduce the result *)
-
   val mul_and_reduce : t -> t -> t
-  (** Multiply two polynomials and reduce the result *)
-
   val round : t -> t
-  (** Round a polynomial's coefficients to either q/2 or 0, whichever is closer *)
-
   val binary_to_poly : bytes -> t
-  (** Convert bytes to a binary bits polynomial *)
-
   val poly_to_binary : t -> bytes
-  (** Convert a binary bits polynomial to bytes *)
-
   val from_coefficients : int list -> t
-  (** Create a polynomial from a list of coefficients *)
-
   val to_coefficients : t -> int list
-  (* * Convert a polynomial to a list of coefficients *)
-
   val to_string : t -> string
-  (** Convert a polynomial to a string *)
-
   val random : unit -> t
-  (** Generate a random polynomial of given degree *)
-
   val random_small_coeff : int -> t
-  (** Generate a random polynomial of given degree with small coefficients, as determined by n1 *)
 end
 
-module PolyMat : sig
-  (** Polynomial Matrix operations *)
+(** 
+  Functor to create a polynomial module given a configuration.
+  @param _ - Module adhering to Kyber_Config_sig.
+  @return - Module adhering to Polynomial_t.
+*)
+module Make_polynomial : functor (_ : Kyber_Config_sig) -> Polynomial_t
 
+(** 
+  Module type for polynomial matrix operations.
+  @type t - Abstract type representing a polynomial matrix.
+  @type poly - Type representing a polynomial.
+  @val zero - Creates a zero matrix with given dimensions.
+  @val add - Adds two matrices.
+  @val sub - Subtracts the second matrix from the first.
+  @val scalar_mul - Multiplies a matrix by a scalar.
+  @val scalar_div - Divides a matrix by a scalar.
+  @val transpose - Transposes a matrix.
+  @val dot_product - Computes the dot product of two polynomial lists.
+  @val mul - Multiplies two matrices.
+  @val random - Generates a random matrix with given dimensions.
+  @val random_small_coeff - Generates a random matrix with small coefficients.
+  @val get_poly - Gets the polynomial at a specific position in the matrix.
+  @val set_poly - Sets the polynomial at a specific position in the matrix.
+  @val map_poly - Applies a function to each polynomial in the matrix.
+  @val reduce_matrix - Reduces each polynomial in the matrix.
+  @val to_list - Converts a matrix to a list of polynomial lists.
+  @val from_list - Creates a matrix from a list of polynomial lists.
+  @val to_string - Converts a matrix to its string representation.
+  @val dimensions - Returns the dimensions of the matrix.
+*)
+module type PolyMat_t = sig
   type t
-  (** Type representing a matrix of polynomials *)
-
+  type poly
   val zero : int -> int -> t
-  (** Create a zero matrix with given rows and columns *)
-
   val add : t -> t -> t
-  (** Add two polynomial matrices of same dimensions *)
-
   val sub : t -> t -> t
-  (** Subtract two polynomial matrices of same dimensions *)
-
   val scalar_mul : int -> t -> t
-  (** Multiply a polynomial matrix by a scalar *)
-
   val scalar_div : int -> t -> t
-  (** Divide a polynomial matrix by a scalar *)
-
   val transpose : t -> t
-  (** Transpose a polynomial matrix *)
-
-  val dot_product : Polynomial.t list -> Polynomial.t list -> Polynomial.t
-  (** Compute the dot product of two lists of polynomials *)
-
+  val dot_product : poly list -> poly list -> poly
   val mul : t -> t -> t
-  (** Multiply two polynomial matrices*)
-
   val random : int -> int -> t
-  (** Generate a random polynomial matrix of given dimensions and polynomial degree *)
-
   val random_small_coeff : int -> int -> int -> t
-  (** Generate a random polynomial matrix of given dimensions and polynomial degree with small coefficients *)
-
-  val get_poly : t -> int -> int -> Polynomial.t
-  (** Get a polynomial at a specific position *)
-
-  val set_poly : t -> int -> int -> Polynomial.t -> t
-  (** Set a polynomial at a specific position *)
-
-  val map_poly : (Polynomial.t -> Polynomial.t) -> t -> t
-  (** Apply a function to each polynomial in the matrix *)
-
+  val get_poly : t -> int -> int -> poly
+  val set_poly : t -> int -> int -> poly -> t
+  val map_poly : (poly -> poly) -> t -> t
   val reduce_matrix : t -> t
-  (** Reduce a polynomial matrix modulo q and degree n *)
-
-  val to_list : t -> Polynomial.t list list
-  (** Convert a PolyMat to an Polynomial list of lists *)
-
-  val from_list : Polynomial.t list list -> t
-  (* * Convert an Polynomial list of lists to a PolyMat *)
-
+  val to_list : t -> poly list list
+  val from_list : poly list list -> t
   val to_string : t -> string
-  (** Convert a polynomial matrix to a string *)
-
   val dimensions : t -> int * int
-  (** Get the dimensions of a polynomial matrix *)
 end
 
-module KyberKEM : sig
-  (** Kyber Cryptographic Scheme *)
+(** 
+  Functor to create a polynomial matrix module given a polynomial module.
+  @param _ - Module adhering to Polynomial_t.
+  @return - Module adhering to PolyMat_t.
+*)
+module Make_poly_mat : functor (P : Polynomial_t) -> PolyMat_t with type poly = P.t
 
-  type public_key = PolyMat.t * PolyMat.t
-  (** Type representing a public key (polynomial vector), A and t *)
-
-  type private_key = PolyMat.t
-  (** Type representing a private key (polynomial vector), s *)
-
-  type ciphertext = PolyMat.t * PolyMat.t
-  (** Type representing a ciphertext (two polynomial vectors), u and v *)
+(** 
+  Module type for Kyber key encapsulation mechanism (KEM).
+  @type poly_mat - Type representing a polynomial matrix.
+  @type public_key - Type representing a public key, which is a pair of polynomial matrices.
+  @type private_key - Type representing a private key, which is a polynomial matrix.
+  @type ciphertext - Type representing a ciphertext, which is a pair of polynomial matrices.
+  @val generate_keypair - Generates a public/private key pair.
+  @val encrypt - Encrypts a message using a public key.
+  @val decrypt - Decrypts a ciphertext using a private key.
+*)
+module type Kyber_t = sig
+  type poly_mat
+  type public_key = poly_mat * poly_mat
+  type private_key = poly_mat
+  type ciphertext = poly_mat * poly_mat
 
   val generate_keypair : unit -> public_key * private_key
-  (** Generate a public and private key pair *)
-
   val encrypt : public_key -> bytes -> ciphertext
-  (** Encrypt a message given a public key, a polynomial (message), and a random vector *)
-
   val decrypt : private_key -> ciphertext -> bytes
-  (** Decrypt a ciphertext given a private key *)
 end
+
+(** 
+  Functor to create a Kyber KEM module given a configuration and a polynomial module.
+  @param _ - Module adhering to Kyber_Config_sig.
+  @param _ - Module adhering to Polynomial_t.
+  @return - Module adhering to Kyber_t.
+*)
+module Make_Kyber : functor (_ : Kyber_Config_sig) (_ : Polynomial_t) -> Kyber_t
