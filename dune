@@ -1,8 +1,9 @@
 (rule
   (target project.zip)
-  (deps 
-    src/algorithm/logic/kyber.ml
-    src/algorithm/tests/kyber_tests.ml
+  (deps
+    src/Encryption/chat_encryption/chat_encryption.ml
+    src/Encryption/kyber-KEM/kyber.ml
+    src/Encryption/tests/kyber_tests.ml
     demo/owldemo.ml
     demo/zarithdemo.ml
     demo/polynomialsffdemo.ml

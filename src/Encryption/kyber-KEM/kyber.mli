@@ -1,17 +1,59 @@
+(** Kyber (Key Encapsulation Mechanism) is a post-quantum cryptographic scheme
+  that provides secure key establishment. This implementation follows a simplified
+  version of the Kyber specification.
+
+  The scheme consists of three main components:
+  - Key Generation: Produces a public-private key pair
+  - Encryption: Encrypts a message using the public key
+  - Decryption: Decrypts a ciphertext using the private key
+
+  {2 Security Parameters}
+  The scheme is parameterized by several constants defined in the Kyber_Config_sig:
+  - q: The modulus for polynomial arithmetic
+  - n: The degree of polynomials
+  - k: The dimension of polynomial vectors
+  - n1: The parameter for small coefficient sampling in noise generation
+  - n2: Additional parameter for small coefficient sampling
+
+  {2 Mathematical Background}
+  Operations are performed in the ring R_q = Z_q[X]/(X^n + 1), where:
+  - Z_q is the ring of integers modulo q
+  - Polynomials are reduced modulo (X^n + 1)
+  - Coefficients are reduced modulo q
+
+  {2 Implementation Notes}
+  - All polynomial operations are implemented in the Polynomial module
+  - Matrix operations are handled by the PolyMat module
+  - Random sampling is used for key generation and encryption
+  - The implementation includes noise sampling for security
+
+  {2 Usage Example}
+  {[
+    let (public_key, private_key) = KyberKEM.generate_keypair () in
+    let message = "secret message" in
+    let ciphertext = KyberKEM.encrypt public_key message in
+    let decrypted = KyberKEM.decrypt private_key ciphertext
+  ]}
+
+  @see 'Polynomial' for polynomial arithmetic operations
+  @see 'PolyMat' for matrix operations
+*)
+
 (** Baby Kyber Library Interface *)
 module type Kyber_Config_sig = sig
   val q : int
   val n : int
   val k : int
   val n1 : int
+  val n2 : int
 end
 
 module Polynomial : sig
   (** Polynomial operations *)
-  
+
   type t
   (** Type representing a polynomial *)
-
+ 
   val zero : t
   (** The zero polynomial *)
 
@@ -46,10 +88,10 @@ module Polynomial : sig
   (** Round a polynomial's coefficients to either q/2 or 0, whichever is closer *)
 
   val binary_to_poly : bytes -> t
-  (** Convert a binary list to a polynomial *)
+  (** Convert bytes to a binary bits polynomial *)
 
   val poly_to_binary : t -> bytes
-  (** Convert a polynomial to a binary list *)
+  (** Convert a binary bits polynomial to bytes *)
 
   val from_coefficients : int list -> t
   (** Create a polynomial from a list of coefficients *)
@@ -63,7 +105,7 @@ module Polynomial : sig
   val random : unit -> t
   (** Generate a random polynomial of given degree *)
 
-  val random_small_coeff : unit -> t
+  val random_small_coeff : int -> t
   (** Generate a random polynomial of given degree with small coefficients, as determined by n1 *)
 end
 
@@ -100,7 +142,7 @@ module PolyMat : sig
   val random : int -> int -> t
   (** Generate a random polynomial matrix of given dimensions and polynomial degree *)
 
-  val random_small_coeff : int -> int -> t
+  val random_small_coeff : int -> int -> int -> t
   (** Generate a random polynomial matrix of given dimensions and polynomial degree with small coefficients *)
 
   val get_poly : t -> int -> int -> Polynomial.t
@@ -123,9 +165,12 @@ module PolyMat : sig
 
   val to_string : t -> string
   (** Convert a polynomial matrix to a string *)
+
+  val dimensions : t -> int * int
+  (** Get the dimensions of a polynomial matrix *)
 end
 
-module Kyber : sig
+module KyberKEM : sig
   (** Kyber Cryptographic Scheme *)
 
   type public_key = PolyMat.t * PolyMat.t

@@ -1,0 +1,15 @@
+(test
+  (name test_runner)
+  (libraries
+    core
+    ounit2
+    kyber
+    chat_encryption
+    mirage-crypto
+    mirage-crypto-rng
+    mirage-crypto-rng-async)
+  (modules 
+    chat_encryption_tests
+    polynomial_tests 
+    kyber_tests
+    test_runner))

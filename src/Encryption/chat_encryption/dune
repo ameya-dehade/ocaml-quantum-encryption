@@ -1,0 +1,9 @@
+(library
+  (name chat_encryption)
+  (modules chat_encryption)
+  (libraries
+    core
+    kyber
+    mirage-crypto
+    mirage-crypto-rng
+    mirage-crypto-rng-async))
