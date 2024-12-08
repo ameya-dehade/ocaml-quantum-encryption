@@ -35,6 +35,31 @@ wss.on('connection', (ws) => {
           });
           break;
         }
+        case 'privateChat': {
+          // Send private message to specific user
+          clients.forEach((username, client) => {
+            if (username === messageData.to && client.readyState === WebSocket.OPEN) {
+              client.send(JSON.stringify({
+                type: 'privateChat',
+                from: messageData.from,
+                to: messageData.to,
+                message: messageData.message,
+                timestamp: messageData.timestamp
+              }));
+            }
+            // Also send back to sender for display in their chat window
+            if (username === messageData.from && client.readyState === WebSocket.OPEN) {
+              client.send(JSON.stringify({
+                type: 'privateChat',
+                from: messageData.from,
+                to: messageData.to,
+                message: messageData.message,
+                timestamp: messageData.timestamp
+              }));
+            }
+          });
+          break;
+        }
       }
     } catch (error) {
       console.error('Error processing message:', error);

@@ -3,12 +3,14 @@
 import * as React from "react";
 import * as Js_dict from "rescript/lib/es6/js_dict.js";
 import * as Js_json from "rescript/lib/es6/js_json.js";
+import * as Caml_obj from "rescript/lib/es6/caml_obj.js";
 import * as ChatInput from "./ChatInput.res.mjs";
 import * as Belt_Array from "rescript/lib/es6/belt_Array.js";
 import * as Belt_Option from "rescript/lib/es6/belt_Option.js";
 import * as Caml_option from "rescript/lib/es6/caml_option.js";
 import * as Belt_SetString from "rescript/lib/es6/belt_SetString.js";
 import * as JsxRuntime from "react/jsx-runtime";
+import * as Caml_js_exceptions from "rescript/lib/es6/caml_js_exceptions.js";
 
 function ChatBox(props) {
   var currentUser = props.currentUser;
@@ -27,6 +29,11 @@ function ChatBox(props) {
       });
   var setAvailableUsers = match$2[1];
   var availableUsers = match$2[0];
+  var match$3 = React.useState(function () {
+        
+      });
+  var setSelectedUser = match$3[1];
+  var selectedUser = match$3[0];
   React.useEffect((function () {
           if (socket === undefined) {
             var ws = new WebSocket("ws://localhost:8080");
@@ -45,42 +52,67 @@ function ChatBox(props) {
                   var message = JSON.parse($$event.data);
                   var messageObj = Belt_Option.getExn(Js_json.decodeObject(message));
                   var messageType = Belt_Option.flatMap(Js_dict.get(messageObj, "type"), Js_json.decodeString);
+                  var exit = 0;
                   if (messageType === undefined) {
                     return ;
                   }
                   switch (messageType) {
                     case "chat" :
-                        var newMessage_from = Belt_Option.getWithDefault(Belt_Option.flatMap(Js_dict.get(messageObj, "from"), Js_json.decodeString), "Unknown");
-                        var newMessage_message = Belt_Option.getWithDefault(Belt_Option.flatMap(Js_dict.get(messageObj, "message"), Js_json.decodeString), "");
-                        var newMessage_timestamp = Belt_Option.getWithDefault(Belt_Option.flatMap(Js_dict.get(messageObj, "timestamp"), Js_json.decodeString), new Date().toISOString());
-                        var newMessage = {
-                          type_: "Chat",
-                          from: newMessage_from,
-                          message: newMessage_message,
-                          timestamp: newMessage_timestamp
-                        };
-                        return setMessages(function (prev) {
-                                    if (Belt_Array.some(prev, (function (existingMsg) {
-                                              return existingMsg.from === newMessage_from && existingMsg.message === newMessage_message ? existingMsg.timestamp === newMessage_timestamp : false;
-                                            }))) {
-                                      return prev;
-                                    } else {
-                                      return Belt_Array.concat(prev, [newMessage]);
-                                    }
-                                  });
+                    case "privateChat" :
+                        exit = 1;
+                        break;
                     case "userList" :
-                        var users = Belt_SetString.toArray(Belt_SetString.remove(Belt_SetString.fromArray(Belt_Option.getWithDefault(Belt_Option.map(Belt_Option.flatMap(Js_dict.get(messageObj, "users"), Js_json.decodeArray), (function (arr) {
-                                                return Belt_Array.keepMap(arr, Js_json.decodeString);
-                                              })), [])), currentUser));
+                        console.log("Received user list");
+                        var obj = Js_json.decodeObject(message);
+                        var users;
+                        if (obj !== undefined) {
+                          var usersJson = Js_dict.get(obj, "users");
+                          if (usersJson !== undefined) {
+                            var arr = Js_json.decodeArray(usersJson);
+                            users = arr !== undefined ? Belt_SetString.toArray(Belt_SetString.remove(Belt_SetString.fromArray(Belt_Array.keepMap(arr, Js_json.decodeString)), currentUser)) : [];
+                          } else {
+                            users = [];
+                          }
+                        } else {
+                          users = [];
+                        }
+                        console.log("Parsed users:");
+                        console.log(users);
                         return setAvailableUsers(function (param) {
                                     return users;
                                   });
                     default:
                       return ;
                   }
+                  if (exit === 1) {
+                    var newMessage_type_ = Caml_obj.equal(messageType, "privateChat") ? "PrivateChat" : "Chat";
+                    var newMessage_from = Belt_Option.getWithDefault(Belt_Option.flatMap(Js_dict.get(messageObj, "from"), Js_json.decodeString), "Unknown");
+                    var newMessage_to_ = Belt_Option.flatMap(Js_dict.get(messageObj, "to"), Js_json.decodeString);
+                    var newMessage_message = Belt_Option.getWithDefault(Belt_Option.flatMap(Js_dict.get(messageObj, "message"), Js_json.decodeString), "");
+                    var newMessage_timestamp = Belt_Option.getWithDefault(Belt_Option.flatMap(Js_dict.get(messageObj, "timestamp"), Js_json.decodeString), new Date().toISOString());
+                    var newMessage = {
+                      type_: newMessage_type_,
+                      from: newMessage_from,
+                      to_: newMessage_to_,
+                      message: newMessage_message,
+                      timestamp: newMessage_timestamp
+                    };
+                    return setMessages(function (prev) {
+                                if (Belt_Array.some(prev, (function (existingMsg) {
+                                          return existingMsg.from === newMessage_from && existingMsg.message === newMessage_message ? existingMsg.timestamp === newMessage_timestamp : false;
+                                        })) || !(newMessage_type_ === "Chat" || newMessage_type_ === "PrivateChat" && (newMessage_from === currentUser || Caml_obj.equal(newMessage_to_, currentUser)))) {
+                                  return prev;
+                                } else {
+                                  return Belt_Array.concat(prev, [newMessage]);
+                                }
+                              });
+                  }
+                  
                 }
-                catch (exn){
+                catch (raw_err){
+                  var err = Caml_js_exceptions.internalToOCamlException(raw_err);
                   console.log("Error parsing message");
+                  console.log(err);
                   return ;
                 }
               });
@@ -106,13 +138,28 @@ function ChatBox(props) {
   var handleSendMessage = function (message) {
     var timestamp = new Date().toISOString();
     var messageData = {};
-    messageData["type"] = "chat";
+    if (selectedUser !== undefined) {
+      messageData["type"] = "privateChat";
+      messageData["to"] = selectedUser;
+    } else {
+      messageData["type"] = "chat";
+    }
     messageData["from"] = currentUser;
     messageData["message"] = message;
     messageData["timestamp"] = timestamp;
     if (socket !== undefined) {
       Caml_option.valFromOption(socket).send(JSON.stringify(messageData));
-      return ;
+      return setMessages(function (prev) {
+                  var newMessage_type_ = selectedUser !== undefined ? "PrivateChat" : "Chat";
+                  var newMessage = {
+                    type_: newMessage_type_,
+                    from: currentUser,
+                    to_: selectedUser,
+                    message: message,
+                    timestamp: timestamp
+                  };
+                  return Belt_Array.concat(prev, [newMessage]);
+                });
     }
     
   };
@@ -129,7 +176,14 @@ function ChatBox(props) {
                                     children: availableUsers.length !== 0 ? Belt_Array.mapWithIndex(availableUsers, (function (idx, user) {
                                               return JsxRuntime.jsx("li", {
                                                           children: user,
-                                                          className: "p-2 hover:bg-gray-100 cursor-pointer"
+                                                          className: "p-2 hover:bg-gray-100 cursor-pointer " + (
+                                                            Caml_obj.equal(selectedUser, user) ? "bg-blue-100" : ""
+                                                          ),
+                                                          onClick: (function (param) {
+                                                              setSelectedUser(function (param) {
+                                                                    return user;
+                                                                  });
+                                                            })
                                                         }, String(idx));
                                             })) : JsxRuntime.jsx("li", {
                                             children: "No other users online",
@@ -142,8 +196,38 @@ function ChatBox(props) {
                           }),
                       JsxRuntime.jsxs("div", {
                             children: [
+                              JsxRuntime.jsxs("div", {
+                                    children: [
+                                      selectedUser !== undefined ? "Chat with " + selectedUser : "Global Chat",
+                                      Belt_Option.mapWithDefault(selectedUser, JsxRuntime.jsx("button", {
+                                                children: "Global Chat",
+                                                className: "ml-4 text-sm text-blue-600 hover:text-blue-800",
+                                                onClick: (function (param) {
+                                                    setSelectedUser(function (param) {
+                                                          
+                                                        });
+                                                  })
+                                              }), (function (param) {
+                                              return null;
+                                            }))
+                                    ],
+                                    className: "text-lg font-bold mb-2"
+                                  }),
                               JsxRuntime.jsx("div", {
-                                    children: messages.length !== 0 ? Belt_Array.mapWithIndex(messages, (function (idx, msg) {
+                                    children: messages.length !== 0 ? Belt_Array.mapWithIndex(Belt_Array.keepMap(messages, (function (msg) {
+                                                  var match = msg.type_;
+                                                  if (selectedUser !== undefined) {
+                                                    if (match === "PrivateChat" && (msg.from === selectedUser && Caml_obj.equal(msg.to_, currentUser) || msg.from === currentUser && Caml_obj.equal(msg.to_, selectedUser))) {
+                                                      return msg;
+                                                    } else {
+                                                      return ;
+                                                    }
+                                                  } else if (match === "Chat") {
+                                                    return msg;
+                                                  } else {
+                                                    return ;
+                                                  }
+                                                })), (function (idx, msg) {
                                               return JsxRuntime.jsxs("div", {
                                                           children: [
                                                             JsxRuntime.jsxs("div", {

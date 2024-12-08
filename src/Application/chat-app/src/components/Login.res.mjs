@@ -8,43 +8,61 @@ function Login(props) {
   var match = React.useState(function () {
         return "";
       });
-  var setUsername = match[1];
-  var username = match[0];
+  var setText = match[1];
+  var text = match[0];
+  var handleKeyDown = function (e) {
+    var key = e.key;
+    if (key !== "Enter") {
+      return ;
+    }
+    e.preventDefault();
+    onSubmit(text);
+    setText(function (param) {
+          return "";
+        });
+  };
   var handleInputChange = function ($$event) {
     var value = $$event.currentTarget.value;
-    setUsername(function (_prev) {
+    setText(function (param) {
           return value;
         });
   };
   var handleButtonClick = function (param) {
-    if (username !== "") {
-      onSubmit(username);
-      return setUsername(function (_prev) {
-                  return "";
-                });
+    if (text === "") {
+      return ;
     }
-    
+    onSubmit(text);
+    setText(function (param) {
+          return "";
+        });
   };
-  return JsxRuntime.jsxs("div", {
-              children: [
-                JsxRuntime.jsx("h2", {
-                      children: "Enter Your Username",
-                      className: "card-title text-center mb-4"
-                    }),
-                JsxRuntime.jsx("input", {
-                      className: "input input-bordered w-full mb-4",
-                      placeholder: "Username",
-                      type: "text",
-                      value: username,
-                      onChange: handleInputChange
-                    }),
-                JsxRuntime.jsx("button", {
-                      children: "Login",
-                      className: "btn btn-primary w-full",
-                      onClick: handleButtonClick
-                    })
-              ],
-              className: "card bg-neutral text-neutral-content p-4 rounded-lg"
+  return JsxRuntime.jsx("div", {
+              children: JsxRuntime.jsxs("div", {
+                    children: [
+                      JsxRuntime.jsx("h2", {
+                            children: "Welcome to Chat",
+                            className: "card-title"
+                          }),
+                      JsxRuntime.jsx("input", {
+                            className: "input input-bordered mr-1 w-full text-black",
+                            placeholder: "Create username",
+                            type: "text",
+                            value: text,
+                            onKeyDown: handleKeyDown,
+                            onChange: handleInputChange
+                          }),
+                      JsxRuntime.jsx("div", {
+                            children: JsxRuntime.jsx("button", {
+                                  children: "Login",
+                                  className: "btn btn-primary",
+                                  onClick: handleButtonClick
+                                }),
+                            className: "card-actions justify-end"
+                          })
+                    ],
+                    className: "card-body items-center text-center"
+                  }),
+              className: "card bg-neutral text-neutral-content rounded-lg"
             });
 }
 

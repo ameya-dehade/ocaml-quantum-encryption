@@ -1,33 +1,57 @@
 @react.component
-let make = (~onSubmit: (string) => unit) => {
-  let (username, setUsername) = React.useState(() => "")
+let make = (~onSubmit: (string) => ()) => {
+  let (text, setText) = React.useState(() => "")
 
-  let handleInputChange = (event) => {
-    let value = ReactEvent.Form.currentTarget(event)["value"]
-    setUsername(_prev => value)
-  }
+  let handleKeyDown = (e) => {
+    let key = ReactEvent.Keyboard.key(e)
 
-  let handleButtonClick = (_) => {
-    if (username !== "") {
-      onSubmit(username)
-      setUsername(_prev => "")
+    switch key {
+      | "Enter" => {
+        ReactEvent.Keyboard.preventDefault(e)
+
+        onSubmit(text)
+        setText((_) => "")
+      } 
+      | _ => ()
     }
   }
 
-  <div className="card bg-neutral text-neutral-content p-4 rounded-lg">
-    <h2 className="card-title text-center mb-4">{React.string("Enter Your Username")}</h2>
-    <input
-      type_="text"
-      placeholder="Username"
-      value={username}
-      onChange={handleInputChange}
-      className="input input-bordered w-full mb-4"
-    />
-    <button
-      className="btn btn-primary w-full"
-      onClick={handleButtonClick}
-    >
-      {React.string("Login")}
-    </button>
+  let handleInputChange = (event) => {
+    let value = ReactEvent.Form.currentTarget(event)["value"]
+    setText((_) => value)
+  }
+
+  let handleButtonClick = (_) => {
+    switch text {
+      | "" => () 
+      | text => {
+        onSubmit(text)
+        setText((_) => "")
+      }
+    }
+  }
+
+  <div className="card bg-neutral text-neutral-content rounded-lg">
+    <div className="card-body items-center text-center">
+      <h2 className="card-title">{React.string("Welcome to Chat")}</h2>
+
+      <input
+        type_="text"
+        placeholder="Create username"
+        className="input input-bordered mr-1 w-full text-black"
+        value={text}
+        onChange={handleInputChange}
+        onKeyDown={handleKeyDown}
+      />
+
+      <div className="card-actions justify-end">
+        <button
+          className="btn btn-primary"
+          onClick={handleButtonClick}
+        >
+          {React.string("Login")}
+        </button>
+      </div>
+    </div>
   </div>
 }
