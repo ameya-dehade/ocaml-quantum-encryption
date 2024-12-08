@@ -1,7 +1,7 @@
 open OUnit2
 open Kyber
 
-module Polynomial = Make_polynomial(Kyber_Config_test)
+module Polynomial = Make_polynomial(Test_Kyber_Config_Mini)
 module PolyMat = Make_poly_mat(Polynomial)
 (* NOTE: All tests are conducted under the assumption modulus 17 on coefficients and modulus x^4 + 1 on polynomials *)
 

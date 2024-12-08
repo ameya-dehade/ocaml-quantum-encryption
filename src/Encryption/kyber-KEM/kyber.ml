@@ -7,7 +7,15 @@ module type Kyber_Config_sig = sig
   val n2 : int
 end
 
-module Kyber_Config : Kyber_Config_sig = struct
+module Kyber512_Config : Kyber_Config_sig = struct
+  let q = 3329
+  let n = 256 
+  let k = 2
+  let n1 = 3
+  let n2 = 2
+end
+
+module Kyber768_Config : Kyber_Config_sig = struct
   let q = 3329
   let n = 256 
   let k = 3
@@ -15,7 +23,15 @@ module Kyber_Config : Kyber_Config_sig = struct
   let n2 = 2
 end
 
-module Kyber_Config_test : Kyber_Config_sig = struct
+module Kyber1024_Config : Kyber_Config_sig = struct
+  let q = 3329
+  let n = 256 
+  let k = 4
+  let n1 = 2
+  let n2 = 2
+end
+
+module Test_Kyber_Config_Mini : Kyber_Config_sig = struct
   let q = 17
   let n = 4
   let k = 2
@@ -185,7 +201,22 @@ module Make_polynomial (C : Kyber_Config_sig) : Polynomial_t = struct
     List.init C.n (fun _ -> Random.int modulus_q)
 
   let random_small_coeff (eta : int) : t =
-    List.init C.n (fun _ -> Random.int eta)
+    let random_bit () = Random.int 2 in
+    let cbd_sample eta =
+      let rec sample eta acc =
+        if eta = 0 then acc
+        else
+          let a = random_bit () in
+          let b = random_bit () in
+          sample (eta - 1) (acc + a - b)
+      in
+      sample eta 0
+    in
+    let rec generate n acc =
+      if n < 0 then acc
+      else generate (n - 1) (cbd_sample eta :: acc)
+    in
+    generate C.n []
 end
 
 module Make_poly_mat (P : Polynomial_t) = struct
@@ -274,8 +305,9 @@ module type Kyber_t = sig
   val decrypt : private_key -> ciphertext -> bytes
 end
 
-module Make_Kyber (C : Kyber_Config_sig) (P : Polynomial_t) : Kyber_t = struct
-  module PolyMat = Make_poly_mat(P)
+module Make_Kyber (C : Kyber_Config_sig) : Kyber_t = struct
+  module Polynomial = Make_polynomial(C)
+  module PolyMat = Make_poly_mat(Polynomial)
  
   type poly_mat = PolyMat.t
   type public_key = poly_mat * poly_mat
@@ -311,7 +343,7 @@ module Make_Kyber (C : Kyber_Config_sig) (P : Polynomial_t) : Kyber_t = struct
     let r = PolyMat.reduce_matrix (PolyMat.random_small_coeff k 1 n1) in
     let e1 = PolyMat.reduce_matrix (PolyMat.random_small_coeff k 1 n2) in
     let e2 = PolyMat.reduce_matrix (PolyMat.random_small_coeff 1 1 n2) in
-    let scaled_msg = P.scalar_mul ((q + 1) / 2) (P.binary_to_poly message) in
+    let scaled_msg = Polynomial.scalar_mul ((q + 1) / 2) (Polynomial.binary_to_poly message) in
     let zero_mat = PolyMat.zero 1 1 in
     let scaled_msg_mat = PolyMat.set_poly zero_mat 0 0 scaled_msg in
     let u = calculate_u (fst pub_key) r e1 in
@@ -323,8 +355,8 @@ module Make_Kyber (C : Kyber_Config_sig) (P : Polynomial_t) : Kyber_t = struct
     let v = snd cipher in
     let noisy_result = PolyMat.sub v (PolyMat.mul (PolyMat.transpose s) u) in
     let noisy_poly = PolyMat.get_poly noisy_result 0 0 in
-    let rounded_poly = P.round noisy_poly in
-    let result_poly = P.scalar_div ((q + 1) / 2) rounded_poly in
-    let result = P.poly_to_binary result_poly in
+    let rounded_poly = Polynomial.round noisy_poly in
+    let result_poly = Polynomial.scalar_div ((q + 1) / 2) rounded_poly in
+    let result = Polynomial.poly_to_binary result_poly in
     result
 end

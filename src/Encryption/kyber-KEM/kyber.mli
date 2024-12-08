@@ -50,8 +50,10 @@ module type Kyber_Config_sig = sig
   val n2 : int
 end
 
-module Kyber_Config : Kyber_Config_sig
-module Kyber_Config_test : Kyber_Config_sig
+module Kyber512_Config : Kyber_Config_sig
+module Kyber768_Config : Kyber_Config_sig
+module Kyber1024_Config : Kyber_Config_sig
+module Test_Kyber_Config_Mini : Kyber_Config_sig
 
 (** 
   Module type for polynomial operations.
@@ -186,7 +188,6 @@ end
 (** 
   Functor to create a Kyber KEM module given a configuration and a polynomial module.
   @param _ - Module adhering to Kyber_Config_sig.
-  @param _ - Module adhering to Polynomial_t.
   @return - Module adhering to Kyber_t.
 *)
-module Make_Kyber : functor (_ : Kyber_Config_sig) (_ : Polynomial_t) -> Kyber_t
+module Make_Kyber : functor (_ : Kyber_Config_sig) -> Kyber_t

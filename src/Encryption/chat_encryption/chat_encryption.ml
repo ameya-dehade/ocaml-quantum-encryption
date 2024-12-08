@@ -41,8 +41,7 @@ open Kyber
 
 module ChatEncryption = struct
 
-  module Polynomial = Make_polynomial(Kyber_Config)
-  module KyberKEM = Make_Kyber(Kyber_Config)(Polynomial)
+  module KyberKEM = Make_Kyber(Kyber768_Config)
   type public_key = KyberKEM.public_key
   type private_key = KyberKEM.private_key
   type ciphertext = KyberKEM.ciphertext

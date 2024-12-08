@@ -4,8 +4,8 @@ open Kyber
 let setup _ =
   Mirage_crypto_rng_unix.initialize (module Mirage_crypto_rng.Fortuna)
 
-module Polynomial = Make_polynomial(Kyber_Config)
-module KyberKEM = Make_Kyber(Kyber_Config)(Polynomial)
+module Polynomial = Make_polynomial(Kyber768_Config)
+module KyberKEM = Make_Kyber(Kyber768_Config)
 
 let test_binary_to_poly _ =
   let message = Bytes.of_string "\x01\x00\x01\x01\x01\x00\x01\x01\x01\x00\x01\x01\x01\x00\x01\x01\x01\x00\x01\x01\x01\x00\x01\x01\x01\x00\x01\x01\x01\x00\x01\x01" in
