@@ -2,5 +2,3 @@
   (name submission)
   (libraries
     core))
-
-
