@@ -6,6 +6,7 @@ import * as Js_json from "rescript/lib/es6/js_json.js";
 import * as Caml_obj from "rescript/lib/es6/caml_obj.js";
 import * as ChatInput from "./ChatInput.res.mjs";
 import * as Belt_Array from "rescript/lib/es6/belt_Array.js";
+import * as Encryption from "../bindings/Encryption.res.mjs";
 import * as Belt_Option from "rescript/lib/es6/belt_Option.js";
 import * as Caml_option from "rescript/lib/es6/caml_option.js";
 import * as Belt_SetString from "rescript/lib/es6/belt_SetString.js";
@@ -34,6 +35,9 @@ function ChatBox(props) {
       });
   var setSelectedUser = match$3[1];
   var selectedUser = match$3[0];
+  React.useEffect((function () {
+          Encryption.randomnessSetup();
+        }), []);
   React.useEffect((function () {
           if (socket === undefined) {
             var ws = new WebSocket("ws://localhost:8080");

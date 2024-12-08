@@ -6,6 +6,12 @@ let make = (~currentUser: string) => {
   let (availableUsers, setAvailableUsers) = React.useState(() => [])
   let (selectedUser, setSelectedUser) = React.useState(() => None)
 
+  // Initialize randomness for encryption
+  React.useEffect1(() => {
+    Encryption.randomnessSetup();
+    None;
+  }, [])
+
   React.useEffect1(() => {
     switch socket {
     | None => {
