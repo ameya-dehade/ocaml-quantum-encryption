@@ -15,19 +15,12 @@ module ChatEncryption : sig
   *)
   val generate_keypair_for_new_user : unit -> public_key * private_key
 
-  (** 
-    Generates a new shared key for encryption.
-    @return The generated shared key as bytes.
-  *)
-  val generate_new_shared_key : unit -> string
+  (** [generate_and_encrypt_shared_key () ~their_pub_key] generates a shared key and encrypts it using the provided public key.
 
-  (** 
-    Encrypts a shared key for sending to another party.
-    @param shared_key The shared key to be encrypted.
-    @param their_pub_key The public key of the recipient.
-    @return The encrypted shared key as bytes.
+    @param their_pub_key The public key of the recipient used to encrypt the shared key.
+    @return A tuple containing the generated shared key as a string and the encrypted shared key as ciphertext.
   *)
-  val encrypt_shared_key_for_sending : shared_key:string -> their_pub_key:public_key -> ciphertext
+  val generate_and_encrypt_shared_key : their_pub_key:public_key -> string * ciphertext
 
   (** 
     Decrypts a received shared key.

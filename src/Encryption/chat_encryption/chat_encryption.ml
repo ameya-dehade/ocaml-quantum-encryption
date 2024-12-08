@@ -52,12 +52,10 @@ module ChatEncryption = struct
   let generate_keypair_for_new_user () =
     KyberKEM.generate_keypair ()
 
-  let generate_new_shared_key () =
-    Mirage_crypto_rng.generate 32
-
-  let encrypt_shared_key_for_sending ~shared_key ~their_pub_key =
+  let generate_and_encrypt_shared_key ~their_pub_key =
+    let shared_key = Mirage_crypto_rng.generate 32 in
     let cipher = KyberKEM.encrypt their_pub_key (Bytes.of_string shared_key) in
-    cipher
+    (shared_key, cipher)
     
   let decrypt_recieved_shared_key ~my_priv_key ~cipher =
     let decrypted = KyberKEM.decrypt my_priv_key cipher in
