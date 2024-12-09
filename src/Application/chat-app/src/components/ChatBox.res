@@ -1,16 +1,16 @@
 @react.component
 let make = (~currentUser: string) => {
-  open MessageType
-  let (messages, setMessages) = React.useState((): array<MessageType.t> => [])
-  let (socket, setSocket) = React.useState(() => None)
-  let (availableUsers, setAvailableUsers) = React.useState(() => [])
-  let (selectedUser, setSelectedUser) = React.useState(() => None)
+  open MessageType;
+  let (messages, setMessages) = React.useState((): array<MessageType.t> => []);
+  let (socket, setSocket) = React.useState(() => None);
+  let (availableUsers, setAvailableUsers) = React.useState(() => []);
+  let (selectedUser, setSelectedUser) = React.useState(() => None);
+  let (sharedKeys, setSharedKeys) = React.useState(() => Js.Dict.empty());
 
-  // Initialize randomness for encryption
-  React.useEffect1(() => {
-    Encryption.randomnessSetup();
-    None;
-  }, [])
+  // Import encryption functions
+  Encryption.randomnessSetup()
+  let (pubKey, privKey) = Encryption.generateKeypair();
+  let (sharedKey, _) = Encryption.generateAndEncryptSharedKey(~theirPubKey=pubKey)
 
   React.useEffect1(() => {
     switch socket {
@@ -24,6 +24,7 @@ let make = (~currentUser: string) => {
           let loginData = Js.Dict.empty()
           Js.Dict.set(loginData, "type", Js.Json.string("login"))
           Js.Dict.set(loginData, "username", Js.Json.string(currentUser))
+          
           
           ws->WebSocket.send(Js.Json.stringify(Js.Json.object_(loginData)))
           
@@ -39,7 +40,17 @@ let make = (~currentUser: string) => {
               ->Belt.Option.flatMap(Js.Json.decodeString)
             
             switch messageType {
+              
             | Some("chat") | Some("privateChat") => {
+                // Decrypt the message
+                let encryptedMessage = messageObj->Js.Dict.get("message")
+                  ->Belt.Option.flatMap(Js.Json.decodeString)
+                  ->Belt.Option.getWithDefault("")
+                let nonce = messageObj->Js.Dict.get("nonce")
+                  ->Belt.Option.flatMap(Js.Json.decodeString)
+                  ->Belt.Option.getWithDefault("")
+                let decryptedMessage = Encryption.decryptMessage(~sharedKey, ~nonce, ~cipher=encryptedMessage)
+                
                 // Safely extract required fields with defaults
                 let newMessage = {
                   type_: messageType == Some("privateChat") ? PrivateChat : Chat,
@@ -48,16 +59,12 @@ let make = (~currentUser: string) => {
                     ->Belt.Option.getWithDefault("Unknown"),
                   to_: messageObj->Js.Dict.get("to")
                     ->Belt.Option.flatMap(Js.Json.decodeString),
-                  message: messageObj->Js.Dict.get("message")
-                    ->Belt.Option.flatMap(Js.Json.decodeString)
-                    ->Belt.Option.getWithDefault(""),
+                  message: decryptedMessage->Belt.Result.map(Bytes.to_string)->Belt.Result.getWithDefault(""),
                   timestamp: messageObj->Js.Dict.get("timestamp")
                     ->Belt.Option.flatMap(Js.Json.decodeString)
-                    ->Belt.Option.getWithDefault(Js.Date.toISOString(Js.Date.make())),
+                    ->Belt.Option.getWithDefault(""),
                 }
                 
-                // Add the message if it's a global chat, 
-                // or a private chat that involves the current user
                 setMessages(prev => 
                   if prev->Belt.Array.some(existingMsg => 
                     existingMsg.from == newMessage.from && 
@@ -134,7 +141,7 @@ let make = (~currentUser: string) => {
       }
     })
   }, [])
-  
+
   let handleSendMessage = message => {
     let timestamp = Js.Date.toISOString(Js.Date.make())
     let messageData = Js.Dict.empty()
@@ -146,14 +153,19 @@ let make = (~currentUser: string) => {
         Js.Dict.set(messageData, "to", Js.Json.string(user))
       }
     | None => {
-        // Global chat
-        Js.Dict.set(messageData, "type", Js.Json.string("chat"))
+        // No user selected
+        Js.log("No user selected")
+        ()
       }
     }
     
     Js.Dict.set(messageData, "from", Js.Json.string(currentUser))
-    Js.Dict.set(messageData, "message", Js.Json.string(message))
     Js.Dict.set(messageData, "timestamp", Js.Json.string(timestamp))
+    
+    // Encrypt the message
+    let (nonce, encryptedMessage) = Encryption.encryptMessage(~sharedKey, ~message=Bytes.of_string(message))
+    Js.Dict.set(messageData, "message", Js.Json.string(encryptedMessage))
+    Js.Dict.set(messageData, "nonce", Js.Json.string(nonce))
     
     switch socket {
     | Some(ws) => {
@@ -180,7 +192,7 @@ let make = (~currentUser: string) => {
     }
   }
 
-  let handleUserSelect = (user) => {
+  let handleUserSelect = user => {
     setSelectedUser(_ => Some(user))
   }
 
@@ -209,56 +221,51 @@ let make = (~currentUser: string) => {
         </ul>
       </div>
       <div className="w-3/4 flex flex-col">
-        <div className="text-lg font-bold mb-2">
-          {switch selectedUser {
-          | Some(user) => React.string("Chat with " ++ user)
-          | None => React.string("Global Chat")
-          }}
-          {selectedUser->Belt.Option.mapWithDefault(
-            <button 
-              className="ml-4 text-sm text-blue-600 hover:text-blue-800"
-              onClick={_ => setSelectedUser(_ => None)}
-            >
-              {React.string("Global Chat")}
-            </button>,
-            _ => React.null
-          )}
-        </div>
-        <div className="flex-1 overflow-y-scroll mb-4 bg-white rounded-lg p-2">
-          {switch messages {
-          | [] => <p className="text-gray-500 text-center"> {React.string("No messages yet!")} </p>
-          | _ =>
-            messages
-            ->Belt.Array.keepMap(msg => 
-              switch (selectedUser, msg.type_) {
-              | (None, Chat) => Some(msg)
-              | (Some(selectedUserName), PrivateChat) => 
-                // Only show messages where the selected user is either sender or recipient
-                if (
-                  (msg.from == selectedUserName && msg.to_ == Some(currentUser)) || 
-                  (msg.from == currentUser && msg.to_ == Some(selectedUserName))
-                ) {
-                  Some(msg)
-                } else {
-                  None
-                }
-              | _ => None
-              }
-            )
-            ->Belt.Array.mapWithIndex((idx, msg) =>
-              <div key={Belt.Int.toString(idx)} className="mb-2">
-                <div>
-                  <span className="font-bold"> {React.string(msg.from ++ ": ")} </span>
-                  <span> {React.string(msg.message)} </span>
-                </div>
-                <div className="text-xs text-gray-500"> {React.string(msg.timestamp)} </div>
-              </div>
-            )
-            ->React.array
-          }}
-        </div>
-        <ChatInput onSubmit={handleSendMessage} />
+        {switch selectedUser {
+        | Some(user) => 
+          <>
+            <div className="text-lg font-bold mb-2">
+              {React.string("Chat with " ++ user)}
+            </div>
+            <div className="flex-1 overflow-y-scroll mb-4 bg-white rounded-lg p-2">
+              {switch messages {
+              | [] => <p className="text-gray-500 text-center"> {React.string("No messages yet!")} </p>
+              | _ =>
+                messages
+                ->Belt.Array.keepMap(msg => 
+                  switch (selectedUser, msg.type_) {
+                  | (Some(selectedUserName), PrivateChat) => 
+                    if (
+                      (msg.from == selectedUserName && msg.to_ == Some(currentUser)) || 
+                      (msg.from == currentUser && msg.to_ == Some(selectedUserName))
+                    ) {
+                      Some(msg)
+                    } else {
+                      None
+                    }
+                  | _ => None
+                  }
+                )
+                ->Belt.Array.mapWithIndex((idx, msg) =>
+                  <div key={Belt.Int.toString(idx)} className="mb-2">
+                    <div>
+                      <span className="font-bold"> {React.string(msg.from ++ ": ")} </span>
+                      <span> {React.string(msg.message)} </span>
+                    </div>
+                    <div className="text-xs text-gray-500"> {React.string(msg.timestamp)} </div>
+                  </div>
+                )
+                ->React.array
+              }}
+            </div>
+            <ChatInput onSubmit={handleSendMessage} />
+          </>
+        | None => 
+          <div className="text-lg font-bold mb-2 text-center">
+            {React.string("Pick a user to chat with")}
+          </div>
+        }}
       </div>
     </div>
-  </div>
+  </div>;
 }
