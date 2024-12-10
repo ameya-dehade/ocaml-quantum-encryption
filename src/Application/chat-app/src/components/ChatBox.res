@@ -7,7 +7,20 @@ let make = (~currentUser: string) => {
   let (selectedUser, setSelectedUser) = React.useState(() => None);
   let (sharedKeys, setSharedKeys) = React.useState(() => Js.Dict.empty());
   let (publicKeys, setPublicKeys) = React.useState(() => Js.Dict.empty());
-  let (pubKey, privKey) = Encryption.generateKeypair();
+  let (pubKey, setPubKey) = React.useState(() => "");
+  let (privKey, setPrivKey) = React.useState(() => "");
+
+  React.useEffect0(() => {
+    // Call your function here
+    Encryption.randomnessSetup();
+    Js.log("Generating keypair")
+    let (s_pubKey, s_privKey) = Encryption.generateKeypair();
+    Js.log(s_pubKey)
+    Js.log(s_privKey)
+    setPubKey(_ => s_pubKey);
+    setPrivKey(_ => s_privKey);
+    Some(() => ());;
+  });
 
   // Key Exchange Logic
   let performKeyExchange = (~recipient: string, ~theirPubKey: string) => {
