@@ -17,9 +17,10 @@ function generateKeypair() {
 
 function generateAndEncryptSharedKey(theirPubKey) {
   console.log("generateAndEncryptSharedKey called");
+  var sharedKey = String(Random.$$int(100));
   return [
-          String(Random.$$int(100)),
-          String(Random.$$int(100))
+          sharedKey,
+          sharedKey
         ];
 }
 
@@ -32,7 +33,7 @@ function encryptMessage(sharedKey, message) {
   console.log("encryptMessage called");
   return [
           String(Random.$$int(100)),
-          String(Random.$$int(100))
+          Bytes.to_string(message)
         ];
 }
 
