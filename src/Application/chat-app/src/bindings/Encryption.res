@@ -26,25 +26,25 @@ let randomnessSetup = () => {
 
 let generateKeypair = () => {
   Js.log("generateKeypair called");
-  ("dummy_pub_key", "dummy_priv_key");
+  (string_of_int(Random.int(100)), string_of_int(Random.int(100)));
 };
 
 let generateAndEncryptSharedKey = (~theirPubKey: publicKey) => {
   Js.log("generateAndEncryptSharedKey called");
-  ("dummy_shared_key", "dummy_cipher");
+  (string_of_int(Random.int(100)), string_of_int(Random.int(100)));
 };
 
 let decryptSharedKey = (~myPrivKey: privateKey, ~cipher: ciphertext) => {
   Js.log("decryptSharedKey called");
-  "dummy_decrypted_shared_key";
+  cipher;
 };
 
 let encryptMessage = (~sharedKey: string, ~message: bytes) => {
   Js.log("encryptMessage called");
-  ("dummy_nonce", "dummy_encrypted_message");
+  (string_of_int(Random.int(100)), string_of_int(Random.int(100)));
 };
 
 let decryptMessage = (~sharedKey: string, ~nonce: string, ~cipher: string) => {
   Js.log("decryptMessage called");
-  Ok(Bytes.of_string("dummy_decrypted_message"));
+  Bytes.of_string(cipher);
 };
