@@ -60,6 +60,7 @@ module type Polynomial_t = sig
   val from_coefficients : int list -> t
   val to_coefficients : t -> int list
   val to_string : t -> string
+  val from_string : string -> t
   val random : unit -> t
   val random_small_coeff : int -> t
 end
@@ -84,6 +85,7 @@ module type PolyMat_t = sig
   val to_list : t -> poly list list
   val from_list : poly list list -> t
   val to_string : t -> string
+  val from_string : string -> t
   val dimensions : t -> int * int
 end
 
@@ -195,7 +197,12 @@ module Make_polynomial (C : Kyber_Config_sig) : Polynomial_t = struct
   let to_coefficients p = p
 
   let to_string p =
-    List.fold_left (fun acc coef -> acc ^ (string_of_int coef) ^ " ") "" p
+    String.concat " " (List.map string_of_int p)
+  
+  let from_string s =
+    s 
+    |> String.split_on_char ' '
+    |> List.map int_of_string
 
   let random _ : t =
     List.init C.n (fun _ -> Random.int modulus_q)
@@ -285,13 +292,37 @@ module Make_poly_mat (P : Polynomial_t) = struct
   let from_list (mat : P.t list list) : t =
     mat
 
-  let to_string (mat : t) : string =
-    List.fold_left (fun acc row ->
-      acc ^ (List.fold_left (fun acc' p -> acc' ^ (P.to_string p) ^ " ") "" row) ^ "\n"
-    ) "" mat
-
   let dimensions (mat : t) : int * int =
     (List.length mat, List.length (List.hd mat))
+
+  let to_string (mat : t) : string =
+    match mat with
+  | [] -> ""
+  | rows -> 
+      rows 
+      |> List.map (fun row -> 
+          row 
+          |> List.map P.to_coefficients
+          |> List.map (fun coeffs -> String.concat " " (List.map string_of_int coeffs))
+          |> String.concat ",")
+      |> String.concat "\n"
+
+  let from_string (s : string) : t =
+    if s = "" then []
+    else
+      s 
+      |> String.split_on_char '\n'
+      |> List.map (fun row -> 
+          row 
+          |> String.split_on_char ','
+          |> List.map (fun coeffs -> 
+              coeffs 
+              |> String.split_on_char ' '
+              |> List.map int_of_string
+              |> P.from_coefficients
+            )
+        )
+
 end
 
 module type Kyber_t = sig
@@ -300,15 +331,21 @@ module type Kyber_t = sig
   type private_key = poly_mat
   type ciphertext = poly_mat * poly_mat
 
-  val generate_keypair : unit -> public_key * private_key
-  val encrypt : public_key -> bytes -> ciphertext
-  val decrypt : private_key -> ciphertext -> bytes
+  val public_key_to_string : public_key -> string
+  val private_key_to_string : private_key -> string
+  val ciphertext_to_string : ciphertext -> string
+  val public_key_from_string : string -> public_key
+  val private_key_from_string : string -> private_key
+  val ciphertext_from_string : string -> ciphertext
+  val generate_keypair : unit -> string * string
+  val encrypt : string -> bytes -> string
+  val decrypt : string -> string -> bytes
 end
 
 module Make_Kyber (C : Kyber_Config_sig) : Kyber_t = struct
   module Polynomial = Make_polynomial(C)
   module PolyMat = Make_poly_mat(Polynomial)
- 
+
   type poly_mat = PolyMat.t
   type public_key = poly_mat * poly_mat
   type private_key = poly_mat
@@ -318,15 +355,45 @@ module Make_Kyber (C : Kyber_Config_sig) : Kyber_t = struct
   let n1 = C.n1
   let n2 = C.n2
 
+  let public_key_to_string (pub_key : public_key) : string =
+    let a = PolyMat.to_string (fst pub_key) in
+    let t = PolyMat.to_string (snd pub_key) in
+    a ^ "|" ^ t
+  
+  let private_key_to_string (priv_key : private_key) : string =
+    PolyMat.to_string priv_key
+
+  let ciphertext_to_string (cipher : ciphertext) : string =
+    let u = PolyMat.to_string (fst cipher) in
+    let v = PolyMat.to_string (snd cipher) in
+    u ^ "|" ^ v
+  
+  let public_key_from_string (s : string) : public_key =
+    let split = String.split_on_char '|' s in
+    let a = PolyMat.from_string (List.nth split 0) in
+    let t = PolyMat.from_string (List.nth split 1) in
+    (a, t)
+
+  let private_key_from_string (s : string) : private_key =
+    PolyMat.from_string s
+  
+  let ciphertext_from_string (s : string) : ciphertext =
+    let split = String.split_on_char '|' s in
+    let u = PolyMat.from_string (List.nth split 0) in
+    let v = PolyMat.from_string (List.nth split 1) in
+    (u, v)
+
   let generate_keypair _ =
     let priv_key : private_key = PolyMat.random_small_coeff k 1 n1 in
     let a = PolyMat.reduce_matrix (PolyMat.random k k) in
     let error = PolyMat.reduce_matrix (PolyMat.random_small_coeff k 1 n1) in
     let t = PolyMat.reduce_matrix (PolyMat.add (PolyMat.mul a priv_key) error) in
     let pub_key : public_key = (a, t) in
-    (pub_key, priv_key)
+    let x = (public_key_to_string pub_key, private_key_to_string priv_key) in
+    x
 
-  let encrypt (pub_key : public_key) (message : bytes) : ciphertext =
+  let encrypt (pub_key : string) (message : bytes) : string =
+    let pub_key = public_key_from_string pub_key in
     let calculate_u (a : PolyMat.t) (r : PolyMat.t) (e1 : PolyMat.t) : PolyMat.t =
       let a_transpose = PolyMat.transpose a in
       let mul_r = PolyMat.mul a_transpose r in
@@ -348,9 +415,12 @@ module Make_Kyber (C : Kyber_Config_sig) : Kyber_t = struct
     let scaled_msg_mat = PolyMat.set_poly zero_mat 0 0 scaled_msg in
     let u = calculate_u (fst pub_key) r e1 in
     let v = calculate_v (snd pub_key) r e2 scaled_msg_mat in
-    (u, v)
+    let x = ciphertext_to_string (u, v) in
+    x
 
-  let decrypt (s : private_key) (cipher : ciphertext) : bytes =
+  let decrypt (s : string) (cipher : string) : bytes =
+    let s = private_key_from_string s in
+    let cipher = ciphertext_from_string cipher in
     let u = fst cipher in
     let v = snd cipher in
     let noisy_result = PolyMat.sub v (PolyMat.mul (PolyMat.transpose s) u) in
@@ -359,4 +429,5 @@ module Make_Kyber (C : Kyber_Config_sig) : Kyber_t = struct
     let result_poly = Polynomial.scalar_div ((q + 1) / 2) rounded_poly in
     let result = Polynomial.poly_to_binary result_poly in
     result
+  
 end

@@ -13,14 +13,14 @@ module ChatEncryption : sig
     Generates a new key pair for starting a new chat.
     @return A tuple containing the public key and private key.
   *)
-  val generate_keypair_for_new_user : unit -> public_key * private_key
+  val generate_keypair_for_new_user : unit -> string * string
 
   (** [generate_and_encrypt_shared_key () ~their_pub_key] generates a shared key and encrypts it using the provided public key.
 
     @param their_pub_key The public key of the recipient used to encrypt the shared key.
     @return A tuple containing the generated shared key as a string and the encrypted shared key as ciphertext.
   *)
-  val generate_and_encrypt_shared_key : their_pub_key:public_key -> string * ciphertext
+  val generate_and_encrypt_shared_key : their_pub_key: string -> string * string
 
   (** 
     Decrypts a received shared key.
@@ -28,7 +28,7 @@ module ChatEncryption : sig
     @param cipher The encrypted shared key.
     @return The decrypted shared key as a string.
   *)
-  val decrypt_recieved_shared_key : my_priv_key:private_key -> cipher:ciphertext -> string
+  val decrypt_recieved_shared_key : my_priv_key:string -> cipher: string -> string
 
   (** 
     Encrypts a message using a given key.

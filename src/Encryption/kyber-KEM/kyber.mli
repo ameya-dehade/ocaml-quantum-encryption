@@ -100,6 +100,7 @@ module type Polynomial_t = sig
   val from_coefficients : int list -> t
   val to_coefficients : t -> int list
   val to_string : t -> string
+  val from_string : string -> t
   val random : unit -> t
   val random_small_coeff : int -> t
 end
@@ -132,6 +133,7 @@ module Make_polynomial : functor (_ : Kyber_Config_sig) -> Polynomial_t
   @val to_list - Converts a matrix to a list of polynomial lists.
   @val from_list - Creates a matrix from a list of polynomial lists.
   @val to_string - Converts a matrix to its string representation.
+  @val from_string - Creates a matrix from its string representation.
   @val dimensions - Returns the dimensions of the matrix.
 *)
 module type PolyMat_t = sig
@@ -154,6 +156,7 @@ module type PolyMat_t = sig
   val to_list : t -> poly list list
   val from_list : poly list list -> t
   val to_string : t -> string
+  val from_string : string -> t
   val dimensions : t -> int * int
 end
 
@@ -180,9 +183,15 @@ module type Kyber_t = sig
   type private_key = poly_mat
   type ciphertext = poly_mat * poly_mat
 
-  val generate_keypair : unit -> public_key * private_key
-  val encrypt : public_key -> bytes -> ciphertext
-  val decrypt : private_key -> ciphertext -> bytes
+  val public_key_to_string : public_key -> string
+  val private_key_to_string : private_key -> string
+  val ciphertext_to_string : ciphertext -> string
+  val public_key_from_string : string -> public_key
+  val private_key_from_string : string -> private_key
+  val ciphertext_from_string : string -> ciphertext
+  val generate_keypair : unit -> string * string
+  val encrypt : string -> bytes -> string
+  val decrypt : string -> string -> bytes
 end
 
 (** 
