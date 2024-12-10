@@ -104,15 +104,7 @@ let make = (~currentUser: string) => {
                     ->Belt.Option.getWithDefault(""),
                 }
                 setMessages(prev => 
-                  if prev->Belt.Array.some(existingMsg => 
-                    existingMsg.from == newMessage.from && 
-                    existingMsg.message == newMessage.message && 
-                    existingMsg.timestamp == newMessage.timestamp
-                  ) {
-                    prev
-                  } else {
                     Belt.Array.concat(prev, [newMessage])
-                  } 
                 )
               }
             | Some("userList") => {
