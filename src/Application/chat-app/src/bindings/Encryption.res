@@ -1,6 +1,6 @@
-type publicKey
-type privateKey 
-type ciphertext
+type publicKey = string;
+type privateKey = string;
+type ciphertext = string;
 
 // @module("../../../../Encryption/chat_encryption/chat_encryption")
 // external randomnessSetup: unit => unit = "randomness_setup"
@@ -21,30 +21,30 @@ type ciphertext
 // external decryptMessage: (~sharedKey: string, ~nonce: string, ~cipher: string) => result<bytes, string> = "decrypt_message"
 
 let randomnessSetup = () => {
-  Js.log("randomnessSetup called")
-}
+  Js.log("randomnessSetup called");
+};
 
 let generateKeypair = () => {
-  Js.log("generateKeypair called")
-  (Obj.magic(()) : publicKey, Obj.magic(()) : privateKey)
-}
+  Js.log("generateKeypair called");
+  ("dummy_pub_key", "dummy_priv_key");
+};
 
 let generateAndEncryptSharedKey = (~theirPubKey: publicKey) => {
-  Js.log("generateAndEncryptSharedKey called")
-  ("dummy_shared_key", Obj.magic(()) : ciphertext)
-}
+  Js.log("generateAndEncryptSharedKey called");
+  ("dummy_shared_key", "dummy_cipher");
+};
 
 let decryptSharedKey = (~myPrivKey: privateKey, ~cipher: ciphertext) => {
-  Js.log("decryptSharedKey called")
-  "dummy_decrypted_shared_key"
-}
+  Js.log("decryptSharedKey called");
+  "dummy_decrypted_shared_key";
+};
 
 let encryptMessage = (~sharedKey: string, ~message: bytes) => {
-  Js.log("encryptMessage called")
-  ("dummy_nonce", "dummy_encrypted_message")
-}
+  Js.log("encryptMessage called");
+  ("dummy_nonce", "dummy_encrypted_message");
+};
 
 let decryptMessage = (~sharedKey: string, ~nonce: string, ~cipher: string) => {
-  Js.log("decryptMessage called")
-  Ok(Bytes.of_string("dummy_decrypted_message"))
-}
+  Js.log("decryptMessage called");
+  Ok(Bytes.of_string("dummy_decrypted_message"));
+};

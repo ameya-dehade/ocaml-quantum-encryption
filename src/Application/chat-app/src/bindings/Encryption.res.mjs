@@ -9,8 +9,8 @@ function randomnessSetup() {
 function generateKeypair() {
   console.log("generateKeypair called");
   return [
-          undefined,
-          undefined
+          "dummy_pub_key",
+          "dummy_priv_key"
         ];
 }
 
@@ -18,7 +18,7 @@ function generateAndEncryptSharedKey(theirPubKey) {
   console.log("generateAndEncryptSharedKey called");
   return [
           "dummy_shared_key",
-          undefined
+          "dummy_cipher"
         ];
 }
 

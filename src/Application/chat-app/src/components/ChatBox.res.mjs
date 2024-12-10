@@ -42,7 +42,8 @@ function ChatBox(props) {
       });
   Encryption.randomnessSetup();
   var match$4 = Encryption.generateKeypair();
-  var match$5 = Encryption.generateAndEncryptSharedKey(match$4[0]);
+  var pubKey = match$4[0];
+  var match$5 = Encryption.generateAndEncryptSharedKey(pubKey);
   var sharedKey = match$5[0];
   React.useEffect((function () {
           if (socket === undefined) {
@@ -52,6 +53,7 @@ function ChatBox(props) {
                 var loginData = {};
                 loginData["type"] = "login";
                 loginData["username"] = currentUser;
+                loginData["pubKey"] = pubKey;
                 ws.send(JSON.stringify(loginData));
                 setSocket(function (param) {
                       return Caml_option.some(ws);

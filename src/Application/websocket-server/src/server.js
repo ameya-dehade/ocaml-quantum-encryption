@@ -2,8 +2,9 @@ const WebSocket = require('ws');
 
 const wss = new WebSocket.Server({ port: 8080 });
 
-// Store all connected clients with their usernames
+// Store all connected clients with their usernames and public keys
 const clients = new Map();
+const userPublicKeys = new Map(); // Map to store usernames and their public keys
 
 wss.on('connection', (ws) => {
   ws.on('message', (rawMessage) => {
@@ -16,6 +17,11 @@ wss.on('connection', (ws) => {
           // Store the client with their username
           ws.username = messageData.username;
           clients.set(ws, messageData.username);
+          
+          // Store the public key associated with the username
+          if (messageData.pubKey) {
+            userPublicKeys.set(messageData.username, messageData.pubKey);
+          }
           
           // Broadcast the updated user list to all clients
           broadcastUserList();
@@ -60,6 +66,40 @@ wss.on('connection', (ws) => {
           });
           break;
         }
+        case 'keyExchange': {
+          // Handle key exchange initiation
+          const recipient = messageData.to;
+          const recipientPublicKey = userPublicKeys.get(recipient);
+
+          if (recipientPublicKey) {
+            // Send the recipient's public key back to the initiator
+            ws.send(JSON.stringify({
+              type: 'keyExchangeResponse',
+              to: messageData.from,
+              from: recipient,
+              pubKey: recipientPublicKey
+            }));
+          } else {
+            ws.send(JSON.stringify({
+              type: 'error',
+              message: `Public key for user ${recipient} not found`
+            }));
+          }
+          break;
+        }
+        case 'keyExchangeResponse': {
+          // Forward the key exchange response to the recipient
+          clients.forEach((username, client) => {
+            if (username === messageData.to && client.readyState === WebSocket.OPEN) {
+              client.send(JSON.stringify({
+                type: 'keyExchangeResponse',
+                from: messageData.from,
+                pubKey: messageData.pubKey
+              }));
+            }
+          });
+          break;
+        }
       }
     } catch (error) {
       console.error('Error processing message:', error);
@@ -68,7 +108,9 @@ wss.on('connection', (ws) => {
 
   ws.on('close', () => {
     // Remove client from the map when they disconnect
+    const username = clients.get(ws);
     clients.delete(ws);
+    userPublicKeys.delete(username); // Clean up public key storage
     
     // Broadcast updated user list
     broadcastUserList();

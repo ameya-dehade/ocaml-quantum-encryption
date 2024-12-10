@@ -12,6 +12,46 @@ let make = (~currentUser: string) => {
   let (pubKey, privKey) = Encryption.generateKeypair();
   let (sharedKey, _) = Encryption.generateAndEncryptSharedKey(~theirPubKey=pubKey)
 
+    // Serialize the public key
+  // let serializePublicKey = (~pubKey: Encryption.publicKey): string => {
+  //   let (part1, part2) = pubKey;
+  //   part1 ++ "," ++ part2; // Combine parts with a separator
+  // }
+
+  // // Deserialize the public key
+  // let deserializePublicKey = (~serializedKey: string): Encryption.publicKey => {
+  //   let parts = serializedKey->Js.String.split(",");
+  //   (Belt.Array.getExn(parts, 0), Belt.Array.getExn(parts, 1)); // Extract parts
+  // }
+
+  // Key Exchange Logic
+  let initiateKeyExchange = (~recipient: string, ~theirPubKey: string) => {
+    let (sharedKey, encryptedKey) = Encryption.generateAndEncryptSharedKey(~theirPubKey);
+    switch socket {
+    | Some(ws) =>
+        let keyExchangeMessage = Js.Dict.empty();
+        Js.Dict.set(keyExchangeMessage, "type", Js.Json.string("keyExchange"));
+        Js.Dict.set(keyExchangeMessage, "from", Js.Json.string(currentUser));
+        Js.Dict.set(keyExchangeMessage, "to", Js.Json.string(recipient));
+        Js.Dict.set(keyExchangeMessage, "encryptedKey", Js.Json.string(encryptedKey));
+        ws->WebSocket.send(Js.Json.stringify(Js.Json.object_(keyExchangeMessage)));
+
+        // Store the shared key locally
+        Js.Dict.set(sharedKeys, recipient, sharedKey);
+    | None => Js.log("WebSocket not connected")
+    }
+  }
+
+  // let handleKeyExchangeResponse = (~from: string, ~encryptedKey: string) => {
+  //   switch Encryption.decryptSharedKey(~myPrivKey=privKey, ~cipher=encryptedKey) {
+  //   | Ok(key) =>
+  //       Js.Dict.set(sharedKeys, from, key); // Store the decrypted shared key
+  //       Js.log("Shared key successfully decrypted and stored for: " ++ from);
+  //   | Error(err) =>
+  //       Js.log("Failed to decrypt shared key for user " ++ from ++ ": " ++ err);
+  //   };
+  // };
+
   React.useEffect1(() => {
     switch socket {
     | None => {
@@ -24,7 +64,7 @@ let make = (~currentUser: string) => {
           let loginData = Js.Dict.empty()
           Js.Dict.set(loginData, "type", Js.Json.string("login"))
           Js.Dict.set(loginData, "username", Js.Json.string(currentUser))
-          
+          Js.Dict.set(loginData, "pubKey", Js.Json.string(pubKey));
           
           ws->WebSocket.send(Js.Json.stringify(Js.Json.object_(loginData)))
           
