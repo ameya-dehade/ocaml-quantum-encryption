@@ -2,7 +2,7 @@ const WebSocket = require('ws');
 
 const wss = new WebSocket.Server({ port: 8080 });
 
-// Store all connected clients with their usernames
+// Store all connected clients with their usernames and public keys
 const clients = new Map();
 
 wss.on('connection', (ws) => {
@@ -17,22 +17,19 @@ wss.on('connection', (ws) => {
           ws.username = messageData.username;
           clients.set(ws, messageData.username);
           
-          // Broadcast the updated user list to all clients
-          broadcastUserList();
-          break;
-        }
-        case 'chat': {
-          // Broadcast the chat message to all connected clients
+          // Send the public key associated with the username to all clients
           clients.forEach((username, client) => {
-            if (client !== ws && client.readyState === WebSocket.OPEN) {
+            if (username != messageData.username && client.readyState === WebSocket.OPEN) {
               client.send(JSON.stringify({
-                type: 'chat',
-                from: messageData.from,
-                message: messageData.message,
-                timestamp: messageData.timestamp
+                type: 'publicKeyInfo',
+                from: messageData.username,
+                publicKeyInfo: messageData.publicKeyInfo
               }));
             }
           });
+          
+          // Broadcast the updated user list to all clients
+          broadcastUserList();
           break;
         }
         case 'privateChat': {
@@ -47,14 +44,17 @@ wss.on('connection', (ws) => {
                 timestamp: messageData.timestamp
               }));
             }
-            // Also send back to sender for display in their chat window
-            if (username === messageData.from && client.readyState === WebSocket.OPEN) {
+          });
+          break;
+        }
+        case 'keyExchange': {
+          // Forward the key exchange response to the recipient
+          clients.forEach((username, client) => {
+            if (username === messageData.to && client.readyState === WebSocket.OPEN) {
               client.send(JSON.stringify({
-                type: 'privateChat',
+                type: 'keyExchange',
                 from: messageData.from,
-                to: messageData.to,
-                message: messageData.message,
-                timestamp: messageData.timestamp
+                encryptedSharedKey: messageData.encryptedSharedKey
               }));
             }
           });
@@ -68,7 +68,10 @@ wss.on('connection', (ws) => {
 
   ws.on('close', () => {
     // Remove client from the map when they disconnect
+    const username = clients.get(ws);
     clients.delete(ws);
+
+    // TODO : Remove public key info from all clients
     
     // Broadcast updated user list
     broadcastUserList();

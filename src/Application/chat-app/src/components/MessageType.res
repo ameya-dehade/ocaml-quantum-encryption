@@ -1,11 +1,13 @@
 type messageType = 
   | Login
-  | Chat
   | PrivateChat
+  | PublicKeyRequest
+  | KeyExchange
+  | KeyExchangeResponse
   | UserList
 
 type t = {
-  type_: messageType,
+  msg_type: messageType,
   from: string,
   to_: option<string>,
   message: string,

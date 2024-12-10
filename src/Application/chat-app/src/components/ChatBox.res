@@ -6,11 +6,44 @@ let make = (~currentUser: string) => {
   let (availableUsers, setAvailableUsers) = React.useState(() => []);
   let (selectedUser, setSelectedUser) = React.useState(() => None);
   let (sharedKeys, setSharedKeys) = React.useState(() => Js.Dict.empty());
+  let (publicKeys, setPublicKeys) = React.useState(() => Js.Dict.empty());
+  let (pubKey, setPubKey) = React.useState(() => "");
+  let (privKey, setPrivKey) = React.useState(() => "");
 
-  // Import encryption functions
-  Encryption.randomnessSetup()
-  let (pubKey, privKey) = Encryption.generateKeypair();
-  let (sharedKey, _) = Encryption.generateAndEncryptSharedKey(~theirPubKey=pubKey)
+  React.useEffect0(() => {
+    // Call your function here
+    Encryption.randomnessSetup();
+    Js.log("Generating keypair")
+    let (s_pubKey, s_privKey) = Encryption.generateKeypair();
+    Js.log(s_pubKey)
+    Js.log(s_privKey)
+    setPubKey(_ => s_pubKey);
+    setPrivKey(_ => s_privKey);
+    Some(() => ());;
+  });
+
+  // Key Exchange Logic
+  let performKeyExchange = (~recipient: string, ~theirPubKey: string) => {
+    let (sharedKey, encryptedSharedKey) = Encryption.generateAndEncryptSharedKey(~theirPubKey);
+    Js.log("Generated shared key")
+    Js.log(sharedKey)
+    Js.log(encryptedSharedKey)
+    switch socket {
+    | Some(ws) =>
+        let keyExchangeMessage = Js.Dict.empty();
+        Js.Dict.set(keyExchangeMessage, "type", Js.Json.string("keyExchange"));
+        Js.Dict.set(keyExchangeMessage, "from", Js.Json.string(currentUser));
+        Js.Dict.set(keyExchangeMessage, "to", Js.Json.string(recipient));
+        Js.Dict.set(keyExchangeMessage, "encryptedSharedKey", Js.Json.string(encryptedSharedKey));
+        ws->WebSocket.send(Js.Json.stringify(Js.Json.object_(keyExchangeMessage)));
+
+        // Store the shared key locally
+        let newSharedKeys = Js.Dict.fromArray(Js.Dict.entries(sharedKeys))
+        Js.Dict.set(newSharedKeys, recipient, sharedKey);
+        setSharedKeys(_ => newSharedKeys)
+    | None => Js.log("WebSocket not connected")
+    }
+  }
 
   React.useEffect1(() => {
     switch socket {
@@ -24,7 +57,7 @@ let make = (~currentUser: string) => {
           let loginData = Js.Dict.empty()
           Js.Dict.set(loginData, "type", Js.Json.string("login"))
           Js.Dict.set(loginData, "username", Js.Json.string(currentUser))
-          
+          Js.Dict.set(loginData, "pubKey", Js.Json.string(pubKey));
           
           ws->WebSocket.send(Js.Json.stringify(Js.Json.object_(loginData)))
           
@@ -40,8 +73,7 @@ let make = (~currentUser: string) => {
               ->Belt.Option.flatMap(Js.Json.decodeString)
             
             switch messageType {
-              
-            | Some("chat") | Some("privateChat") => {
+            | Some("privateChat") => {
                 // Decrypt the message
                 let encryptedMessage = messageObj->Js.Dict.get("message")
                   ->Belt.Option.flatMap(Js.Json.decodeString)
@@ -49,22 +81,28 @@ let make = (~currentUser: string) => {
                 let nonce = messageObj->Js.Dict.get("nonce")
                   ->Belt.Option.flatMap(Js.Json.decodeString)
                   ->Belt.Option.getWithDefault("")
-                let decryptedMessage = Encryption.decryptMessage(~sharedKey, ~nonce, ~cipher=encryptedMessage)
-                
+                let sharedKey = Js.Dict.unsafeGet(sharedKeys, messageObj->Js.Dict.get("from")
+                  ->Belt.Option.flatMap(Js.Json.decodeString)
+                  ->Belt.Option.getWithDefault("Unknown"))
+                let decryptedMessage = Encryption.decryptMessage(~sharedKey, ~nonce, ~cipher=encryptedMessage);
+                Js.log("Message sender")
+                Js.log(messageObj->Js.Dict.get("from")
+                  ->Belt.Option.flatMap(Js.Json.decodeString)
+                  ->Belt.Option.getWithDefault("Unknown"))
+
                 // Safely extract required fields with defaults
                 let newMessage = {
-                  type_: messageType == Some("privateChat") ? PrivateChat : Chat,
+                  msg_type: PrivateChat,
                   from: messageObj->Js.Dict.get("from")
                     ->Belt.Option.flatMap(Js.Json.decodeString)
                     ->Belt.Option.getWithDefault("Unknown"),
                   to_: messageObj->Js.Dict.get("to")
                     ->Belt.Option.flatMap(Js.Json.decodeString),
-                  message: decryptedMessage->Belt.Result.map(Bytes.to_string)->Belt.Result.getWithDefault(""),
+                  message: decryptedMessage->Bytes.to_string,
                   timestamp: messageObj->Js.Dict.get("timestamp")
                     ->Belt.Option.flatMap(Js.Json.decodeString)
                     ->Belt.Option.getWithDefault(""),
                 }
-                
                 setMessages(prev => 
                   if prev->Belt.Array.some(existingMsg => 
                     existingMsg.from == newMessage.from && 
@@ -72,17 +110,9 @@ let make = (~currentUser: string) => {
                     existingMsg.timestamp == newMessage.timestamp
                   ) {
                     prev
-                  } else if (
-                    newMessage.type_ == Chat || 
-                    (newMessage.type_ == PrivateChat && (
-                      newMessage.from == currentUser || 
-                      newMessage.to_ == Some(currentUser)
-                    ))
-                  ) {
-                    Belt.Array.concat(prev, [newMessage])
                   } else {
-                    prev
-                  }
+                    Belt.Array.concat(prev, [newMessage])
+                  } 
                 )
               }
             | Some("userList") => {
@@ -112,6 +142,42 @@ let make = (~currentUser: string) => {
                 Js.log(users)
                 
                 setAvailableUsers(_ => users)
+              }
+            | Some("keyExchange") => {
+                Js.log("Received key exchange request")
+                
+                let from = messageObj->Js.Dict.get("from")
+                  ->Belt.Option.flatMap(Js.Json.decodeString)
+                  ->Belt.Option.getWithDefault("Unknown")
+                let encryptedSharedKey = messageObj->Js.Dict.get("encryptedSharedKey")
+                  ->Belt.Option.flatMap(Js.Json.decodeString)
+                  ->Belt.Option.getWithDefault("")
+                
+                // Decrypt the shared key
+                let sharedKey = Encryption.decryptSharedKey(~myPrivKey=privKey, ~cipher=encryptedSharedKey);
+                Js.log("Decrypted shared key")
+                Js.log(sharedKey)
+                let newSharedKeys = Js.Dict.fromArray(Js.Dict.entries(sharedKeys))
+                Js.Dict.set(newSharedKeys, from, sharedKey)
+                setSharedKeys(_ => newSharedKeys)
+              }
+            | Some("publicKeyInfo") => {
+                Js.log("Received public key info")
+                
+                let user = messageObj->Js.Dict.get("from")
+                  ->Belt.Option.flatMap(Js.Json.decodeString)
+                  ->Belt.Option.getWithDefault("Unknown")
+                let publicKey = messageObj->Js.Dict.get("publicKeyInfo")
+                  ->Belt.Option.flatMap(Js.Json.decodeString)
+                  ->Belt.Option.getWithDefault("")
+                
+                Js.log("Parsed public key info:")
+                Js.log(user)
+                Js.log(publicKey)
+        
+                let newPublicKeys = Js.Dict.fromArray(Js.Dict.entries(publicKeys))
+                Js.Dict.set(newPublicKeys, user, publicKey)
+                setPublicKeys(_ => newPublicKeys)
               }
             | _ => ()
             }
@@ -163,6 +229,7 @@ let make = (~currentUser: string) => {
     Js.Dict.set(messageData, "timestamp", Js.Json.string(timestamp))
     
     // Encrypt the message
+    let sharedKey = Js.Dict.unsafeGet(sharedKeys, Js.Option.getExn(selectedUser))
     let (nonce, encryptedMessage) = Encryption.encryptMessage(~sharedKey, ~message=Bytes.of_string(message))
     Js.Dict.set(messageData, "message", Js.Json.string(encryptedMessage))
     Js.Dict.set(messageData, "nonce", Js.Json.string(nonce))
@@ -175,10 +242,7 @@ let make = (~currentUser: string) => {
         // Immediately add the message to the local messages state
         setMessages(prev => {
           let newMessage = {
-            type_: switch selectedUser {
-            | Some(_) => PrivateChat
-            | None => Chat
-            },
+            msg_type: PrivateChat,
             from: currentUser,
             to_: selectedUser,
             message: message,
@@ -193,7 +257,20 @@ let make = (~currentUser: string) => {
   }
 
   let handleUserSelect = user => {
-    setSelectedUser(_ => Some(user))
+    switch Js.Dict.get(sharedKeys, user) {
+    | Some(_) => setSelectedUser(_ => Some(user))
+    | None => {
+        // Request the public key for the user
+        switch socket {
+        | Some(_ws) => 
+        Js.log("Requesting public key for user: " ++ user)
+        performKeyExchange(~recipient=user, ~theirPubKey=Js.Dict.unsafeGet(publicKeys, user))
+        setSelectedUser(_ => Some(user))
+        | None => Js.log("WebSocket not connected")
+        }
+      }
+    }
+
   }
 
   <div className="p-4 bg-slate-200 w-full h-full flex flex-col rounded-lg">
@@ -233,7 +310,7 @@ let make = (~currentUser: string) => {
               | _ =>
                 messages
                 ->Belt.Array.keepMap(msg => 
-                  switch (selectedUser, msg.type_) {
+                  switch (selectedUser, msg.msg_type) {
                   | (Some(selectedUserName), PrivateChat) => 
                     if (
                       (msg.from == selectedUserName && msg.to_ == Some(currentUser)) || 
