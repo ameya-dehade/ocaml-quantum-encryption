@@ -3,9 +3,10 @@
 import * as Bytes from "rescript/lib/es6/bytes.js";
 import * as Random from "rescript/lib/es6/random.js";
 
+Random.self_init();
+
 function randomnessSetup() {
   console.log("randomnessSetup called");
-  Random.self_init();
 }
 
 function generateKeypair() {
@@ -51,4 +52,4 @@ export {
   encryptMessage ,
   decryptMessage ,
 }
-/* No side effect */
+/*  Not a pure module */

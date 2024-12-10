@@ -1,6 +1,8 @@
+
+Random.self_init();
+
 let randomnessSetup = () => {
   Js.log("randomnessSetup called");
-  Random.self_init();
 };
 
 let generateKeypair = () => {
