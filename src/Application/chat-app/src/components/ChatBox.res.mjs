@@ -151,13 +151,7 @@ function ChatBox(props) {
                           timestamp: newMessage_timestamp
                         };
                         return setMessages(function (prev) {
-                                    if (Belt_Array.some(prev, (function (existingMsg) {
-                                              return existingMsg.from === newMessage_from && existingMsg.message === newMessage_message ? existingMsg.timestamp === newMessage_timestamp : false;
-                                            }))) {
-                                      return prev;
-                                    } else {
-                                      return Belt_Array.concat(prev, [newMessage]);
-                                    }
+                                    return Belt_Array.concat(prev, [newMessage]);
                                   });
                     case "publicKeyInfo" :
                         console.log("Received public key info");
