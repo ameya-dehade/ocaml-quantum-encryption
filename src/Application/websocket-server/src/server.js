@@ -4,6 +4,7 @@ const wss = new WebSocket.Server({ port: 8080 });
 
 // Store all connected clients with their usernames and public keys
 const clients = new Map();
+const publicKeys = new Map();
 
 wss.on('connection', (ws) => {
   ws.on('message', (rawMessage) => {
@@ -18,15 +19,21 @@ wss.on('connection', (ws) => {
           clients.set(ws, messageData.username);
           
           // Send the public key associated with the username to all clients
-          clients.forEach((username, client) => {
-            if (username != messageData.username && client.readyState === WebSocket.OPEN) {
-              client.send(JSON.stringify({
-                type: 'publicKeyInfo',
-                from: messageData.username,
-                publicKeyInfo: messageData.publicKeyInfo
-              }));
-            }
-          });
+          // clients.forEach((username, client) => {
+          //   if (username != messageData.username && client.readyState === WebSocket.OPEN) {
+          //     client.send(JSON.stringify({
+          //       type: 'publicKeyInfo',
+          //       from: messageData.username,
+          //       publicKeyInfo: messageData.publicKeyInfo
+          //     }));
+          //   }
+          // });
+
+          // Store public key 
+          console.log("SENT login pub key: ")
+          console.log(messageData.pubKey)
+          publicKeys.set(messageData.username, messageData.pubKey);
+          console.log(publicKeys)
           
           // Broadcast the updated user list to all clients
           broadcastUserList();
@@ -60,6 +67,21 @@ wss.on('connection', (ws) => {
           });
           break;
         }
+        case 'publicKeyRequest': {
+          // Send public key info to the client
+          clients.forEach((username, client) => {
+            if (username === messageData.from && client.readyState === WebSocket.OPEN) {
+              console.log('Sending public key info to:', messageData.from);
+              client.send(JSON.stringify({
+                type: 'publicKeyRequestResponse',
+                from: messageData.to,
+                publicKeyInfo: publicKeys.get(messageData.to)
+              }));
+              console.log('Public key:', publicKeys.get(messageData.to));
+            }
+          });
+          break;
+        }
       }
     } catch (error) {
       console.error('Error processing message:', error);
@@ -72,6 +94,7 @@ wss.on('connection', (ws) => {
     clients.delete(ws);
 
     // TODO : Remove public key info from all clients
+    publicKeys.delete(username);
     
     // Broadcast updated user list
     broadcastUserList();

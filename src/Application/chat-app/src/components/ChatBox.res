@@ -6,22 +6,8 @@ let make = (~currentUser: string) => {
   let (availableUsers, setAvailableUsers) = React.useState(() => []);
   let (selectedUser, setSelectedUser) = React.useState(() => None);
   let (sharedKeys, setSharedKeys) = React.useState(() => Js.Dict.empty());
-  let (publicKeys, setPublicKeys) = React.useState(() => Js.Dict.empty());
   let (pubKey, setPubKey) = React.useState(() => "");
   let (privKey, setPrivKey) = React.useState(() => "");
-
-  React.useEffect0(() => {
-    // Call your function here
-    Encryption.randomnessSetup();
-    Js.log("Generating keypair")
-    let (s_pubKey, s_privKey) = Encryption.generateKeypair();
-    Js.log(s_pubKey)
-    Js.log(s_privKey)
-    setPubKey(_ => s_pubKey);
-    setPrivKey(_ => s_privKey);
-    Some(() => ());;
-  });
-
   // Key Exchange Logic
   let performKeyExchange = (~recipient: string, ~theirPubKey: string) => {
     let (sharedKey, encryptedSharedKey) = Encryption.generateAndEncryptSharedKey(~theirPubKey);
@@ -45,6 +31,43 @@ let make = (~currentUser: string) => {
     }
   }
 
+  let getPublicKeyAndPerformKeyExchange = (username: string) => {
+    switch socket {
+    | Some(ws) =>
+      let publicKeyRequest = Js.Dict.empty();
+      Js.Dict.set(publicKeyRequest, "type", Js.Json.string("publicKeyRequest"));
+      Js.Dict.set(publicKeyRequest, "from", Js.Json.string(currentUser));
+      Js.Dict.set(publicKeyRequest, "to", Js.Json.string(username));
+      ws->WebSocket.send(Js.Json.stringify(Js.Json.object_(publicKeyRequest)));
+
+      ws->WebSocket.onMessage(event => {
+        try {
+        let message = Js.Json.parseExn(event["data"]);
+        let messageObj = message->Js.Json.decodeObject->Belt.Option.getExn;
+        let messageType = messageObj->Js.Dict.get("type")
+          ->Belt.Option.flatMap(Js.Json.decodeString);
+
+        switch messageType {
+        | Some("publicKeyRequestResponse") => {
+          let theirPubKey = messageObj->Js.Dict.get("publicKeyInfo")
+            ->Belt.Option.flatMap(Js.Json.decodeString)
+            ->Belt.Option.getWithDefault("");
+          Js.log("Received public key: " ++ theirPubKey);
+          performKeyExchange(~recipient=username, ~theirPubKey);
+          }
+        | _ => ()
+        }
+        } catch {
+        | err => {
+          Js.log("Error parsing message");
+          Js.log(err);
+        }
+        }
+      });
+    | None => Js.log("WebSocket not connected")
+    }
+  }
+
   React.useEffect1(() => {
     switch socket {
     | None => {
@@ -52,7 +75,13 @@ let make = (~currentUser: string) => {
         
         ws->WebSocket.onOpen(() => {
           Js.log("Connected to WebSocket")
-          
+          Encryption.randomnessSetup();
+          Js.log("Generating keypair")
+          let (pubKey, privKey) = Encryption.generateKeypair();
+          Js.log("Public key : " ++ pubKey)
+          Js.log("Private key : " ++ privKey)
+          setPubKey(_ => pubKey);
+          setPrivKey(_ => privKey);
           // Send login message
           let loginData = Js.Dict.empty()
           Js.Dict.set(loginData, "type", Js.Json.string("login"))
@@ -153,24 +182,6 @@ let make = (~currentUser: string) => {
                 Js.Dict.set(newSharedKeys, from, sharedKey)
                 setSharedKeys(_ => newSharedKeys)
               }
-            | Some("publicKeyInfo") => {
-                Js.log("Received public key info")
-                
-                let user = messageObj->Js.Dict.get("from")
-                  ->Belt.Option.flatMap(Js.Json.decodeString)
-                  ->Belt.Option.getWithDefault("Unknown")
-                let publicKey = messageObj->Js.Dict.get("publicKeyInfo")
-                  ->Belt.Option.flatMap(Js.Json.decodeString)
-                  ->Belt.Option.getWithDefault("")
-                
-                Js.log("Parsed public key info:")
-                Js.log(user)
-                Js.log(publicKey)
-        
-                let newPublicKeys = Js.Dict.fromArray(Js.Dict.entries(publicKeys))
-                Js.Dict.set(newPublicKeys, user, publicKey)
-                setPublicKeys(_ => newPublicKeys)
-              }
             | _ => ()
             }
           } catch {
@@ -256,9 +267,7 @@ let make = (~currentUser: string) => {
         switch socket {
         | Some(_ws) => 
         Js.log("Requesting public key for user: " ++ user)
-        let pubkey = Js.Dict.unsafeGet(publicKeys, user)
-        performKeyExchange(~recipient=user, ~theirPubKey=pubKey)
-        Js.log(pubKey)
+        getPublicKeyAndPerformKeyExchange(user)
         setSelectedUser(_ => Some(user))
         | None => Js.log("WebSocket not connected")
         }

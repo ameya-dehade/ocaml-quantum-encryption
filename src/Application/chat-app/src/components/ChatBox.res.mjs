@@ -43,57 +43,65 @@ function ChatBox(props) {
   var setSharedKeys = match$4[1];
   var sharedKeys = match$4[0];
   var match$5 = React.useState(function () {
-        return {};
+        return "";
       });
-  var setPublicKeys = match$5[1];
-  var publicKeys = match$5[0];
+  var setPubKey = match$5[1];
   var match$6 = React.useState(function () {
         return "";
       });
-  var setPubKey = match$6[1];
-  var pubKey = match$6[0];
-  var match$7 = React.useState(function () {
-        return "";
-      });
-  var setPrivKey = match$7[1];
-  var privKey = match$7[0];
-  React.useEffect((function () {
-          Encryption.randomnessSetup();
-          console.log("Generating keypair");
-          var match = Encryption.generateKeypair();
-          var s_privKey = match[1];
-          var s_pubKey = match[0];
-          console.log(s_pubKey);
-          console.log(s_privKey);
-          setPubKey(function (param) {
-                return s_pubKey;
-              });
-          setPrivKey(function (param) {
-                return s_privKey;
-              });
-          return (function () {
-                    
-                  });
-        }), []);
-  var performKeyExchange = function (recipient, theirPubKey) {
-    var match = Encryption.generateAndEncryptSharedKey(theirPubKey);
-    var encryptedSharedKey = match[1];
-    var sharedKey = match[0];
-    console.log("Generated shared key");
-    console.log(sharedKey);
-    console.log(encryptedSharedKey);
+  var setPrivKey = match$6[1];
+  var privKey = match$6[0];
+  var getPublicKeyAndPerformKeyExchange = function (username) {
     if (socket !== undefined) {
-      var keyExchangeMessage = {};
-      keyExchangeMessage["type"] = "keyExchange";
-      keyExchangeMessage["from"] = currentUser;
-      keyExchangeMessage["to"] = recipient;
-      keyExchangeMessage["encryptedSharedKey"] = encryptedSharedKey;
-      Caml_option.valFromOption(socket).send(JSON.stringify(keyExchangeMessage));
-      var newSharedKeys = Js_dict.fromArray(Js_dict.entries(sharedKeys));
-      newSharedKeys[recipient] = sharedKey;
-      return setSharedKeys(function (param) {
-                  return newSharedKeys;
-                });
+      var ws = Caml_option.valFromOption(socket);
+      var publicKeyRequest = {};
+      publicKeyRequest["type"] = "publicKeyRequest";
+      publicKeyRequest["from"] = currentUser;
+      publicKeyRequest["to"] = username;
+      ws.send(JSON.stringify(publicKeyRequest));
+      ws.onmessage = (function ($$event) {
+          try {
+            var message = JSON.parse($$event.data);
+            var messageObj = Belt_Option.getExn(Js_json.decodeObject(message));
+            var messageType = Belt_Option.flatMap(Js_dict.get(messageObj, "type"), Js_json.decodeString);
+            if (messageType === undefined) {
+              return ;
+            }
+            if (messageType !== "publicKeyRequestResponse") {
+              return ;
+            }
+            var theirPubKey = Belt_Option.getWithDefault(Belt_Option.flatMap(Js_dict.get(messageObj, "publicKeyInfo"), Js_json.decodeString), "");
+            console.log("Received public key: " + theirPubKey);
+            var match = Encryption.generateAndEncryptSharedKey(theirPubKey);
+            var encryptedSharedKey = match[1];
+            var sharedKey = match[0];
+            console.log("Generated shared key");
+            console.log(sharedKey);
+            console.log(encryptedSharedKey);
+            if (socket !== undefined) {
+              var keyExchangeMessage = {};
+              keyExchangeMessage["type"] = "keyExchange";
+              keyExchangeMessage["from"] = currentUser;
+              keyExchangeMessage["to"] = username;
+              keyExchangeMessage["encryptedSharedKey"] = encryptedSharedKey;
+              Caml_option.valFromOption(socket).send(JSON.stringify(keyExchangeMessage));
+              var newSharedKeys = Js_dict.fromArray(Js_dict.entries(sharedKeys));
+              newSharedKeys[username] = sharedKey;
+              return setSharedKeys(function (param) {
+                          return newSharedKeys;
+                        });
+            }
+            console.log("WebSocket not connected");
+            return ;
+          }
+          catch (raw_err){
+            var err = Caml_js_exceptions.internalToOCamlException(raw_err);
+            console.log("Error parsing message");
+            console.log(err);
+            return ;
+          }
+        });
+      return ;
     }
     console.log("WebSocket not connected");
   };
@@ -102,6 +110,19 @@ function ChatBox(props) {
             var ws = new WebSocket("ws://localhost:8080");
             ws.onopen = (function () {
                 console.log("Connected to WebSocket");
+                Encryption.randomnessSetup();
+                console.log("Generating keypair");
+                var match = Encryption.generateKeypair();
+                var privKey = match[1];
+                var pubKey = match[0];
+                console.log("Public key : " + pubKey);
+                console.log("Private key : " + privKey);
+                setPubKey(function (param) {
+                      return pubKey;
+                    });
+                setPrivKey(function (param) {
+                      return privKey;
+                    });
                 var loginData = {};
                 loginData["type"] = "login";
                 loginData["username"] = currentUser;
@@ -152,18 +173,6 @@ function ChatBox(props) {
                         };
                         return setMessages(function (prev) {
                                     return Belt_Array.concat(prev, [newMessage]);
-                                  });
-                    case "publicKeyInfo" :
-                        console.log("Received public key info");
-                        var user = Belt_Option.getWithDefault(Belt_Option.flatMap(Js_dict.get(messageObj, "from"), Js_json.decodeString), "Unknown");
-                        var publicKey = Belt_Option.getWithDefault(Belt_Option.flatMap(Js_dict.get(messageObj, "publicKeyInfo"), Js_json.decodeString), "");
-                        console.log("Parsed public key info:");
-                        console.log(user);
-                        console.log(publicKey);
-                        var newPublicKeys = Js_dict.fromArray(Js_dict.entries(publicKeys));
-                        newPublicKeys[user] = publicKey;
-                        return setPublicKeys(function (param) {
-                                    return newPublicKeys;
                                   });
                     case "userList" :
                         console.log("Received user list");
@@ -269,8 +278,7 @@ function ChatBox(props) {
                                                                           });
                                                               } else if (socket !== undefined) {
                                                                 console.log("Requesting public key for user: " + user);
-                                                                performKeyExchange(user, pubKey);
-                                                                console.log(pubKey);
+                                                                getPublicKeyAndPerformKeyExchange(user);
                                                                 return setSelectedUser(function (param) {
                                                                             return user;
                                                                           });
