@@ -5,6 +5,7 @@ import * as Random from "rescript/lib/es6/random.js";
 
 function randomnessSetup() {
   console.log("randomnessSetup called");
+  Random.self_init();
 }
 
 function generateKeypair() {
