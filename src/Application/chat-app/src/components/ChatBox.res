@@ -7,20 +7,7 @@ let make = (~currentUser: string) => {
   let (selectedUser, setSelectedUser) = React.useState(() => None);
   let (sharedKeys, setSharedKeys) = React.useState(() => Js.Dict.empty());
   let (publicKeys, setPublicKeys) = React.useState(() => Js.Dict.empty());
-  let (pubKey, setPubKey) = React.useState(() => "");
-  let (privKey, setPrivKey) = React.useState(() => "");
-
-  React.useEffect0(() => {
-    // Call your function here
-    Encryption.randomnessSetup();
-    Js.log("Generating keypair")
-    let (s_pubKey, s_privKey) = Encryption.generateKeypair();
-    Js.log(s_pubKey)
-    Js.log(s_privKey)
-    setPubKey(_ => s_pubKey);
-    setPrivKey(_ => s_privKey);
-    Some(() => ());;
-  });
+  let (pubKey, privKey) = Encryption.generateKeypair();
 
   // Key Exchange Logic
   let performKeyExchange = (~recipient: string, ~theirPubKey: string) => {
@@ -256,7 +243,9 @@ let make = (~currentUser: string) => {
         switch socket {
         | Some(_ws) => 
         Js.log("Requesting public key for user: " ++ user)
-        performKeyExchange(~recipient=user, ~theirPubKey=Js.Dict.unsafeGet(publicKeys, user))
+        let pubkey = Js.Dict.unsafeGet(publicKeys, user)
+        performKeyExchange(~recipient=user, ~theirPubKey=pubKey)
+        Js.log(pubKey)
         setSelectedUser(_ => Some(user))
         | None => Js.log("WebSocket not connected")
         }

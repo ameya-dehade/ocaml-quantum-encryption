@@ -269,7 +269,8 @@ function ChatBox(props) {
                                                                           });
                                                               } else if (socket !== undefined) {
                                                                 console.log("Requesting public key for user: " + user);
-                                                                performKeyExchange(user, publicKeys[user]);
+                                                                performKeyExchange(user, pubKey);
+                                                                console.log(pubKey);
                                                                 return setSelectedUser(function (param) {
                                                                             return user;
                                                                           });
