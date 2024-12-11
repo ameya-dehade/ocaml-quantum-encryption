@@ -150,10 +150,9 @@ function ChatBox(props) {
                         keyExchangeMessage["to"] = username;
                         keyExchangeMessage["encryptedSharedKey"] = encryptedSharedKey$1;
                         ws.send(JSON.stringify(keyExchangeMessage));
-                        var newSharedKeys$1 = Js_dict.fromArray(Js_dict.entries(sharedKeys));
-                        newSharedKeys$1[username] = sharedKey$2;
+                        sharedKeys[username] = sharedKey$2;
                         return setSharedKeys(function (param) {
-                                    return newSharedKeys$1;
+                                    return sharedKeys;
                                   });
                     case "userList" :
                         console.log("Received user list");

@@ -22,7 +22,7 @@ let make = (~currentUser: string) => {
     ws->WebSocket.send(Js.Json.stringify(Js.Json.object_(keyExchangeMessage)));
 
     // Store the shared key locally
-    let newSharedKeys = Js.Dict.fromArray(Js.Dict.entries(sharedKeys))
+    let newSharedKeys = sharedKeys
     Js.Dict.set(newSharedKeys, recipient, sharedKey);
     setSharedKeys(_ => newSharedKeys);
   }
