@@ -8,6 +8,9 @@ let make = (~currentUser: string) => {
   let (sharedKeys, setSharedKeys) = React.useState(() => Js.Dict.empty());
   let (pubKey, setPubKey) = React.useState(() => "");
   let (privKey, setPrivKey) = React.useState(() => "");
+  let (unreadMessages, setUnreadMessages) = React.useState(() => Js.Dict.empty());
+
+
   // Key Exchange Logic
   let performKeyExchange = (~recipient: string, ~theirPubKey: string, ws) => {
     let (sharedKey, encryptedSharedKey) = Encryption.generateAndEncryptSharedKey(~theirPubKey);
@@ -22,7 +25,7 @@ let make = (~currentUser: string) => {
     ws->WebSocket.send(Js.Json.stringify(Js.Json.object_(keyExchangeMessage)));
 
     // Store the shared key locally
-    let newSharedKeys = sharedKeys
+    let newSharedKeys = Js.Dict.fromArray(Js.Dict.entries(sharedKeys))
     Js.Dict.set(newSharedKeys, recipient, sharedKey);
     setSharedKeys(_ => newSharedKeys);
   }
@@ -82,14 +85,25 @@ let make = (~currentUser: string) => {
                 let nonce = messageObj->Js.Dict.get("nonce")
                   ->Belt.Option.flatMap(Js.Json.decodeString)
                   ->Belt.Option.getWithDefault("")
-                let sharedKey = Js.Dict.unsafeGet(sharedKeys, messageObj->Js.Dict.get("from")
+                let sender = messageObj->Js.Dict.get("from")
                   ->Belt.Option.flatMap(Js.Json.decodeString)
-                  ->Belt.Option.getWithDefault("Unknown"))
+                  ->Belt.Option.getWithDefault("Unknown")
+                let sharedKey = Js.Dict.unsafeGet(sharedKeys, sender)
                 let decryptedMessage = Encryption.decryptMessage(~sharedKey, ~nonce, ~cipher=encryptedMessage);
                 Js.log("Message sender")
                 Js.log(messageObj->Js.Dict.get("from")
                   ->Belt.Option.flatMap(Js.Json.decodeString)
                   ->Belt.Option.getWithDefault("Unknown"))
+
+                setUnreadMessages(prevUnread => {
+                  let newUnreadMessages = Js.Dict.fromArray(Js.Dict.entries(prevUnread));
+                  let currentUnreadCount = switch Js.Dict.get(newUnreadMessages, sender) {
+                  | Some(count) => count + 1
+                  | None => 1
+                  };
+                  Js.Dict.set(newUnreadMessages, sender, currentUnreadCount);
+                  newUnreadMessages;
+                });  
 
                 // Safely extract required fields with defaults
                 let newMessage = {
@@ -247,7 +261,21 @@ let make = (~currentUser: string) => {
 
   let handleUserSelect = user => {
     switch Js.Dict.get(sharedKeys, user) {
-    | Some(_) => setSelectedUser(_ => Some(user))
+    | Some(_) => {
+      // Reset unread messages for the selected user
+      let newUnreadMessages = Js.Dict.fromArray(
+        Js.Dict.entries(unreadMessages)
+        ->Belt.Array.map(((key, value)) => (key, Belt.Int.toString(value)))
+      );
+      Js.Dict.unsafeDeleteKey(newUnreadMessages, user);
+      setUnreadMessages(_ => 
+        Js.Dict.fromArray(
+          Js.Dict.entries(newUnreadMessages)
+          ->Belt.Array.map(((key, value)) => (key, Belt.Int.fromString(value)->Belt.Option.getExn))
+        )
+      );
+      setSelectedUser(_ => Some(user));
+    }
     | None => {
         // Request the public key for the user
         switch socket {
@@ -277,7 +305,14 @@ let make = (~currentUser: string) => {
                 }
                 onClick={_ => handleUserSelect(user)}
               >
-                {React.string(user)}
+                <span>{React.string(user)}</span>
+                {switch Js.Dict.get(unreadMessages, user) {
+                | Some(count) => 
+                  <span className="bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
+                    {React.string(Belt.Int.toString(count))}
+                  </span>
+                | None => React.null
+                }}
               </li>
             )->React.array
             : <li className="text-gray-500 text-center">

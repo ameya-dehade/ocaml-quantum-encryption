@@ -4,6 +4,7 @@ import * as Bytes from "rescript/lib/es6/bytes.js";
 import * as React from "react";
 import * as Js_dict from "rescript/lib/es6/js_dict.js";
 import * as Js_json from "rescript/lib/es6/js_json.js";
+import * as Belt_Int from "rescript/lib/es6/belt_Int.js";
 import * as Caml_obj from "rescript/lib/es6/caml_obj.js";
 import * as ChatInput from "./ChatInput.res.mjs";
 import * as Js_option from "rescript/lib/es6/js_option.js";
@@ -51,6 +52,11 @@ function ChatBox(props) {
       });
   var setPrivKey = match$6[1];
   var privKey = match$6[0];
+  var match$7 = React.useState(function () {
+        return {};
+      });
+  var setUnreadMessages = match$7[1];
+  var unreadMessages = match$7[0];
   var getPublicKey = function (username) {
     if (socket !== undefined) {
       var publicKeyRequest = {};
@@ -113,10 +119,18 @@ function ChatBox(props) {
                     case "privateChat" :
                         var encryptedMessage = Belt_Option.getWithDefault(Belt_Option.flatMap(Js_dict.get(messageObj, "message"), Js_json.decodeString), "");
                         var nonce = Belt_Option.getWithDefault(Belt_Option.flatMap(Js_dict.get(messageObj, "nonce"), Js_json.decodeString), "");
-                        var sharedKey$1 = sharedKeys[Belt_Option.getWithDefault(Belt_Option.flatMap(Js_dict.get(messageObj, "from"), Js_json.decodeString), "Unknown")];
+                        var sender = Belt_Option.getWithDefault(Belt_Option.flatMap(Js_dict.get(messageObj, "from"), Js_json.decodeString), "Unknown");
+                        var sharedKey$1 = sharedKeys[sender];
                         var decryptedMessage = Encryption.decryptMessage(sharedKey$1, nonce, encryptedMessage);
                         console.log("Message sender");
                         console.log(Belt_Option.getWithDefault(Belt_Option.flatMap(Js_dict.get(messageObj, "from"), Js_json.decodeString), "Unknown"));
+                        setUnreadMessages(function (prevUnread) {
+                              var newUnreadMessages = Js_dict.fromArray(Js_dict.entries(prevUnread));
+                              var count = Js_dict.get(newUnreadMessages, sender);
+                              var currentUnreadCount = count !== undefined ? count + 1 | 0 : 1;
+                              newUnreadMessages[sender] = currentUnreadCount;
+                              return newUnreadMessages;
+                            });
                         var newMessage_from = Belt_Option.getWithDefault(Belt_Option.flatMap(Js_dict.get(messageObj, "from"), Js_json.decodeString), "Unknown");
                         var newMessage_to_ = Belt_Option.flatMap(Js_dict.get(messageObj, "to"), Js_json.decodeString);
                         var newMessage_message = Bytes.to_string(decryptedMessage);
@@ -150,9 +164,10 @@ function ChatBox(props) {
                         keyExchangeMessage["to"] = username;
                         keyExchangeMessage["encryptedSharedKey"] = encryptedSharedKey$1;
                         ws.send(JSON.stringify(keyExchangeMessage));
-                        sharedKeys[username] = sharedKey$2;
+                        var newSharedKeys$1 = Js_dict.fromArray(Js_dict.entries(sharedKeys));
+                        newSharedKeys$1[username] = sharedKey$2;
                         return setSharedKeys(function (param) {
-                                    return sharedKeys;
+                                    return newSharedKeys$1;
                                   });
                     case "userList" :
                         console.log("Received user list");
@@ -246,27 +261,52 @@ function ChatBox(props) {
                                   }),
                               JsxRuntime.jsx("ul", {
                                     children: availableUsers.length !== 0 ? Belt_Array.mapWithIndex(availableUsers, (function (idx, user) {
-                                              return JsxRuntime.jsx("li", {
-                                                          children: user,
+                                              var count = Js_dict.get(unreadMessages, user);
+                                              return JsxRuntime.jsxs("li", {
+                                                          children: [
+                                                            JsxRuntime.jsx("span", {
+                                                                  children: user
+                                                                }),
+                                                            count !== undefined ? JsxRuntime.jsx("span", {
+                                                                    children: String(count),
+                                                                    className: "bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center"
+                                                                  }) : null
+                                                          ],
                                                           className: "p-2 hover:bg-gray-100 cursor-pointer " + (
                                                             Caml_obj.equal(selectedUser, user) ? "bg-blue-100" : ""
                                                           ),
                                                           onClick: (function (param) {
                                                               var match = Js_dict.get(sharedKeys, user);
-                                                              if (match !== undefined) {
-                                                                return setSelectedUser(function (param) {
-                                                                            return user;
-                                                                          });
-                                                              } else if (socket !== undefined) {
-                                                                console.log("Requesting public key for user: " + user);
-                                                                getPublicKey(user);
-                                                                return setSelectedUser(function (param) {
-                                                                            return user;
-                                                                          });
-                                                              } else {
-                                                                console.log("WebSocket not connected");
-                                                                return ;
+                                                              if (match === undefined) {
+                                                                if (socket !== undefined) {
+                                                                  console.log("Requesting public key for user: " + user);
+                                                                  getPublicKey(user);
+                                                                  return setSelectedUser(function (param) {
+                                                                              return user;
+                                                                            });
+                                                                } else {
+                                                                  console.log("WebSocket not connected");
+                                                                  return ;
+                                                                }
                                                               }
+                                                              var newUnreadMessages = Js_dict.fromArray(Belt_Array.map(Js_dict.entries(unreadMessages), (function (param) {
+                                                                          return [
+                                                                                  param[0],
+                                                                                  String(param[1])
+                                                                                ];
+                                                                        })));
+                                                              Js_dict.unsafeDeleteKey(newUnreadMessages, user);
+                                                              setUnreadMessages(function (param) {
+                                                                    return Js_dict.fromArray(Belt_Array.map(Js_dict.entries(newUnreadMessages), (function (param) {
+                                                                                      return [
+                                                                                              param[0],
+                                                                                              Belt_Option.getExn(Belt_Int.fromString(param[1]))
+                                                                                            ];
+                                                                                    })));
+                                                                  });
+                                                              setSelectedUser(function (param) {
+                                                                    return user;
+                                                                  });
                                                             })
                                                         }, String(idx));
                                             })) : JsxRuntime.jsx("li", {
