@@ -9,26 +9,22 @@ let make = (~currentUser: string) => {
   let (pubKey, setPubKey) = React.useState(() => "");
   let (privKey, setPrivKey) = React.useState(() => "");
   // Key Exchange Logic
-  let performKeyExchange = (~recipient: string, ~theirPubKey: string) => {
+  let performKeyExchange = (~recipient: string, ~theirPubKey: string, ws) => {
     let (sharedKey, encryptedSharedKey) = Encryption.generateAndEncryptSharedKey(~theirPubKey);
     Js.log("Generated shared key")
     Js.log(sharedKey)
     Js.log(encryptedSharedKey)
-    switch socket {
-    | Some(ws) =>
-        let keyExchangeMessage = Js.Dict.empty();
-        Js.Dict.set(keyExchangeMessage, "type", Js.Json.string("keyExchange"));
-        Js.Dict.set(keyExchangeMessage, "from", Js.Json.string(currentUser));
-        Js.Dict.set(keyExchangeMessage, "to", Js.Json.string(recipient));
-        Js.Dict.set(keyExchangeMessage, "encryptedSharedKey", Js.Json.string(encryptedSharedKey));
-        ws->WebSocket.send(Js.Json.stringify(Js.Json.object_(keyExchangeMessage)));
+    let keyExchangeMessage = Js.Dict.empty();
+    Js.Dict.set(keyExchangeMessage, "type", Js.Json.string("keyExchange"));
+    Js.Dict.set(keyExchangeMessage, "from", Js.Json.string(currentUser));
+    Js.Dict.set(keyExchangeMessage, "to", Js.Json.string(recipient));
+    Js.Dict.set(keyExchangeMessage, "encryptedSharedKey", Js.Json.string(encryptedSharedKey));
+    ws->WebSocket.send(Js.Json.stringify(Js.Json.object_(keyExchangeMessage)));
 
-        // Store the shared key locally
-        let newSharedKeys = Js.Dict.fromArray(Js.Dict.entries(sharedKeys))
-        Js.Dict.set(newSharedKeys, recipient, sharedKey);
-        setSharedKeys(_ => newSharedKeys)
-    | None => Js.log("WebSocket not connected")
-    }
+    // Store the shared key locally
+    let newSharedKeys = Js.Dict.fromArray(Js.Dict.entries(sharedKeys))
+    Js.Dict.set(newSharedKeys, recipient, sharedKey);
+    setSharedKeys(_ => newSharedKeys);
   }
 
   let getPublicKey = (username: string) => {
@@ -39,6 +35,7 @@ let make = (~currentUser: string) => {
       Js.Dict.set(publicKeyRequest, "from", Js.Json.string(currentUser));
       Js.Dict.set(publicKeyRequest, "to", Js.Json.string(username));
       ws->WebSocket.send(Js.Json.stringify(Js.Json.object_(publicKeyRequest)));
+
     | None => Js.log("WebSocket not connected")
     }
   }
@@ -161,8 +158,14 @@ let make = (~currentUser: string) => {
               let theirPubKey = messageObj->Js.Dict.get("publicKeyInfo")
                 ->Belt.Option.flatMap(Js.Json.decodeString)
                 ->Belt.Option.getWithDefault("");
+              let username = messageObj->Js.Dict.get("from")
+                ->Belt.Option.flatMap(Js.Json.decodeString)
+                ->Belt.Option.getWithDefault("Unknown");
               Js.log("Received public key: " ++ theirPubKey);
-              performKeyExchange(~recipient=username, ~theirPubKey);
+              Js.log("From user: " ++ username);
+              Js.log("Socket :")
+              Js.log(socket)
+              performKeyExchange(~recipient=username, ~theirPubKey, ws);
               }
             | _ => ()
           }
@@ -175,7 +178,7 @@ let make = (~currentUser: string) => {
         })
 
         ws->WebSocket.onClose(_ => {
-          Js.log("WebSocket connection closed")
+          Js.log("WebSocket connection closed xyz")
           setSocket(_ => None)
         })
       }
@@ -186,6 +189,7 @@ let make = (~currentUser: string) => {
       switch socket {
       | Some(ws) => {
           ws->WebSocket.onClose(_ => ())
+          Js.log("Whyyy Closing WebSocket connection")
           setSocket(_ => None)
         }
       | None => ()
