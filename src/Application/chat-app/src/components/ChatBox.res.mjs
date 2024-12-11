@@ -74,10 +74,12 @@ function ChatBox(props) {
             ws.onopen = (function () {
                 console.log("Connected to WebSocket");
                 Encryption.randomnessSetup();
+                console.log("Generating keypair");
                 var match = Encryption.generateKeypair();
                 var privKey = match[1];
                 var pubKey = match[0];
-                console.log("Public key: " + pubKey + ", Private key: " + privKey);
+                console.log("Public key : " + pubKey);
+                console.log("Private key : " + privKey);
                 setPubKey(function (param) {
                       return pubKey;
                     });
@@ -120,7 +122,8 @@ function ChatBox(props) {
                         var sender = Belt_Option.getWithDefault(Belt_Option.flatMap(Js_dict.get(messageObj, "from"), Js_json.decodeString), "Unknown");
                         var sharedKey$1 = sharedKeys[sender];
                         var decryptedMessage = Encryption.decryptMessage(sharedKey$1, nonce, encryptedMessage);
-                        console.log("Message sender: " + Belt_Option.getWithDefault(Belt_Option.flatMap(Js_dict.get(messageObj, "from"), Js_json.decodeString), "Unknown"));
+                        console.log("Message sender");
+                        console.log(Belt_Option.getWithDefault(Belt_Option.flatMap(Js_dict.get(messageObj, "from"), Js_json.decodeString), "Unknown"));
                         setUnreadMessages(function (prevUnread) {
                               var newUnreadMessages = Js_dict.fromArray(Js_dict.entries(prevUnread));
                               var count = Js_dict.get(newUnreadMessages, sender);
@@ -145,11 +148,14 @@ function ChatBox(props) {
                     case "publicKeyRequestResponse" :
                         var theirPubKey = Belt_Option.getWithDefault(Belt_Option.flatMap(Js_dict.get(messageObj, "publicKeyInfo"), Js_json.decodeString), "");
                         var username = Belt_Option.getWithDefault(Belt_Option.flatMap(Js_dict.get(messageObj, "from"), Js_json.decodeString), "Unknown");
-                        console.log("Received public key " + theirPubKey + " from user: " + username);
+                        console.log("Received public key: " + theirPubKey);
+                        console.log("From user: " + username);
                         var match = Encryption.generateAndEncryptSharedKey(theirPubKey);
                         var encryptedSharedKey$1 = match[1];
                         var sharedKey$2 = match[0];
-                        console.log("Generated shared key: (" + sharedKey$2 + ", " + encryptedSharedKey$1 + ")");
+                        console.log("Generated shared key");
+                        console.log(sharedKey$2);
+                        console.log(encryptedSharedKey$1);
                         var keyExchangeMessage = {};
                         keyExchangeMessage["type"] = "keyExchange";
                         keyExchangeMessage["from"] = currentUser;

@@ -18,7 +18,7 @@ function generateKeypair() {
 }
 
 function generateAndEncryptSharedKey(theirPubKey) {
-  console.log("generateAndEncryptSharedKey called with public key", theirPubKey);
+  console.log("generateAndEncryptSharedKey called");
   var sharedKey = String(Random.$$int(100));
   return [
           sharedKey,
@@ -32,7 +32,7 @@ function decryptSharedKey(myPrivKey, cipher) {
 }
 
 function encryptMessage(sharedKey, message) {
-  console.log("encryptMessage called with shared key and message", sharedKey, Bytes.to_string(message));
+  console.log("encryptMessage called");
   return [
           String(Random.$$int(100)),
           Bytes.to_string(message)
