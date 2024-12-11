@@ -6,7 +6,7 @@ let make = (~currentUser: string) => {
   let (availableUsers, setAvailableUsers) = React.useState(() => []);
   let (selectedUser, setSelectedUser) = React.useState(() => None);
   let (sharedKeys, setSharedKeys) = React.useState(() => Js.Dict.empty());
-  let (pubKey, setPubKey) = React.useState(() => "");
+  let (_pubKey, setPubKey) = React.useState(() => "");
   let (privKey, setPrivKey) = React.useState(() => "");
   let (unreadMessages, setUnreadMessages) = React.useState(() => Js.Dict.empty());
 
