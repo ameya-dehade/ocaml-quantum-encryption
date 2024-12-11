@@ -168,7 +168,6 @@ function ChatBox(props) {
                                     return newSharedKeys$1;
                                   });
                     case "userList" :
-                        console.log("Received user list");
                         var obj = Js_json.decodeObject(message);
                         var users;
                         if (obj !== undefined) {
@@ -182,8 +181,6 @@ function ChatBox(props) {
                         } else {
                           users = [];
                         }
-                        console.log("Parsed users:");
-                        console.log(users);
                         return setAvailableUsers(function (param) {
                                     return users;
                                   });

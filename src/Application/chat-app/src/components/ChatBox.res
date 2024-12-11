@@ -122,9 +122,7 @@ let make = (~currentUser: string) => {
                     Belt.Array.concat(prev, [newMessage])
                 )
               }
-            | Some("userList") => {
-                Js.log("Received user list")
-                
+            | Some("userList") => {                
                 let users = switch Js.Json.decodeObject(message) {
                 | Some(obj) => {
                     switch Js.Dict.get(obj, "users") {
@@ -144,10 +142,6 @@ let make = (~currentUser: string) => {
                 }
                 | None => []
                 }
-                
-                Js.log("Parsed users:")
-                Js.log(users)
-                
                 setAvailableUsers(_ => users)
               }
             | Some("keyExchange") => {

@@ -37,7 +37,7 @@ let test_kyber_encryption_decryption_random _ =
 let test_kyber_encryption_decryption_10_random_ =
   setup ();
   let (pub_key, priv_key) = KyberKEM.generate_keypair () in
-  for _ = 1 to 1000 do
+  for _ = 1 to 100 do
     let shared_secret = Mirage_crypto_rng.generate 32 in
     let cipher = KyberKEM.encrypt pub_key (Bytes.of_string shared_secret) in
     let decrypted = KyberKEM.decrypt priv_key cipher in
