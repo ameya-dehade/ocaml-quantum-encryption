@@ -11,7 +11,7 @@ let generateKeypair = () => {
 };
 
 let generateAndEncryptSharedKey = (~theirPubKey: string) => {
-  Js.log("generateAndEncryptSharedKey called");
+  Js.log2("generateAndEncryptSharedKey called with public key", theirPubKey);
   let sharedKey = string_of_int(Random.int(100));
   (sharedKey, sharedKey);
 };
@@ -22,7 +22,7 @@ let decryptSharedKey = (~myPrivKey: string, ~cipher: string) => {
 };
 
 let encryptMessage = (~sharedKey: string, ~message: bytes) => {
-  Js.log("encryptMessage called");
+  Js.log3("encryptMessage called with shared key and message", sharedKey, Bytes.to_string(message));
   (string_of_int(Random.int(100)), Bytes.to_string(message));
 };
 

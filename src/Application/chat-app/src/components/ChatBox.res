@@ -14,9 +14,7 @@ let make = (~currentUser: string) => {
   // Key Exchange Logic
   let performKeyExchange = (~recipient: string, ~theirPubKey: string, ws) => {
     let (sharedKey, encryptedSharedKey) = Encryption.generateAndEncryptSharedKey(~theirPubKey);
-    Js.log("Generated shared key")
-    Js.log(sharedKey)
-    Js.log(encryptedSharedKey)
+    Js.log("Generated shared key: (" ++ sharedKey ++ ", " ++ encryptedSharedKey ++ ")")
     let keyExchangeMessage = Js.Dict.empty();
     Js.Dict.set(keyExchangeMessage, "type", Js.Json.string("keyExchange"));
     Js.Dict.set(keyExchangeMessage, "from", Js.Json.string(currentUser));
@@ -51,10 +49,8 @@ let make = (~currentUser: string) => {
         ws->WebSocket.onOpen(() => {
           Js.log("Connected to WebSocket")
           Encryption.randomnessSetup();
-          Js.log("Generating keypair")
           let (pubKey, privKey) = Encryption.generateKeypair();
-          Js.log("Public key : " ++ pubKey)
-          Js.log("Private key : " ++ privKey)
+          Js.log("Public key: " ++ pubKey ++ ", Private key: " ++ privKey)
           setPubKey(_ => pubKey);
           setPrivKey(_ => privKey);
           // Send login message
@@ -90,8 +86,7 @@ let make = (~currentUser: string) => {
                   ->Belt.Option.getWithDefault("Unknown")
                 let sharedKey = Js.Dict.unsafeGet(sharedKeys, sender)
                 let decryptedMessage = Encryption.decryptMessage(~sharedKey, ~nonce, ~cipher=encryptedMessage);
-                Js.log("Message sender")
-                Js.log(messageObj->Js.Dict.get("from")
+                Js.log("Message sender: " ++ messageObj->Js.Dict.get("from")
                   ->Belt.Option.flatMap(Js.Json.decodeString)
                   ->Belt.Option.getWithDefault("Unknown"))
 
@@ -175,10 +170,7 @@ let make = (~currentUser: string) => {
               let username = messageObj->Js.Dict.get("from")
                 ->Belt.Option.flatMap(Js.Json.decodeString)
                 ->Belt.Option.getWithDefault("Unknown");
-              Js.log("Received public key: " ++ theirPubKey);
-              Js.log("From user: " ++ username);
-              Js.log("Socket :")
-              Js.log(socket)
+              Js.log("Received public key " ++ theirPubKey ++ " from user: " ++ username);
               performKeyExchange(~recipient=username, ~theirPubKey, ws);
               }
             | _ => ()
@@ -203,7 +195,6 @@ let make = (~currentUser: string) => {
       switch socket {
       | Some(ws) => {
           ws->WebSocket.onClose(_ => ())
-          Js.log("Whyyy Closing WebSocket connection")
           setSocket(_ => None)
         }
       | None => ()
