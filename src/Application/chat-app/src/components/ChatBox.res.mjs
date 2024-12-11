@@ -53,54 +53,11 @@ function ChatBox(props) {
   var privKey = match$6[0];
   var getPublicKeyAndPerformKeyExchange = function (username) {
     if (socket !== undefined) {
-      var ws = Caml_option.valFromOption(socket);
       var publicKeyRequest = {};
       publicKeyRequest["type"] = "publicKeyRequest";
       publicKeyRequest["from"] = currentUser;
       publicKeyRequest["to"] = username;
-      ws.send(JSON.stringify(publicKeyRequest));
-      ws.onmessage = (function ($$event) {
-          try {
-            var message = JSON.parse($$event.data);
-            var messageObj = Belt_Option.getExn(Js_json.decodeObject(message));
-            var messageType = Belt_Option.flatMap(Js_dict.get(messageObj, "type"), Js_json.decodeString);
-            if (messageType === undefined) {
-              return ;
-            }
-            if (messageType !== "publicKeyRequestResponse") {
-              return ;
-            }
-            var theirPubKey = Belt_Option.getWithDefault(Belt_Option.flatMap(Js_dict.get(messageObj, "publicKeyInfo"), Js_json.decodeString), "");
-            console.log("Received public key: " + theirPubKey);
-            var match = Encryption.generateAndEncryptSharedKey(theirPubKey);
-            var encryptedSharedKey = match[1];
-            var sharedKey = match[0];
-            console.log("Generated shared key");
-            console.log(sharedKey);
-            console.log(encryptedSharedKey);
-            if (socket !== undefined) {
-              var keyExchangeMessage = {};
-              keyExchangeMessage["type"] = "keyExchange";
-              keyExchangeMessage["from"] = currentUser;
-              keyExchangeMessage["to"] = username;
-              keyExchangeMessage["encryptedSharedKey"] = encryptedSharedKey;
-              Caml_option.valFromOption(socket).send(JSON.stringify(keyExchangeMessage));
-              var newSharedKeys = Js_dict.fromArray(Js_dict.entries(sharedKeys));
-              newSharedKeys[username] = sharedKey;
-              return setSharedKeys(function (param) {
-                          return newSharedKeys;
-                        });
-            }
-            console.log("WebSocket not connected");
-            return ;
-          }
-          catch (raw_err){
-            var err = Caml_js_exceptions.internalToOCamlException(raw_err);
-            console.log("Error parsing message");
-            console.log(err);
-            return ;
-          }
-        });
+      Caml_option.valFromOption(socket).send(JSON.stringify(publicKeyRequest));
       return ;
     }
     console.log("WebSocket not connected");

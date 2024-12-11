@@ -31,7 +31,7 @@ let make = (~currentUser: string) => {
     }
   }
 
-  let getPublicKeyAndPerformKeyExchange = (username: string) => {
+  let getPublicKey = (username: string) => {
     switch socket {
     | Some(ws) =>
       let publicKeyRequest = Js.Dict.empty();
@@ -39,31 +39,6 @@ let make = (~currentUser: string) => {
       Js.Dict.set(publicKeyRequest, "from", Js.Json.string(currentUser));
       Js.Dict.set(publicKeyRequest, "to", Js.Json.string(username));
       ws->WebSocket.send(Js.Json.stringify(Js.Json.object_(publicKeyRequest)));
-
-      ws->WebSocket.onMessage(event => {
-        try {
-        let message = Js.Json.parseExn(event["data"]);
-        let messageObj = message->Js.Json.decodeObject->Belt.Option.getExn;
-        let messageType = messageObj->Js.Dict.get("type")
-          ->Belt.Option.flatMap(Js.Json.decodeString);
-
-        switch messageType {
-        | Some("publicKeyRequestResponse") => {
-          let theirPubKey = messageObj->Js.Dict.get("publicKeyInfo")
-            ->Belt.Option.flatMap(Js.Json.decodeString)
-            ->Belt.Option.getWithDefault("");
-          Js.log("Received public key: " ++ theirPubKey);
-          performKeyExchange(~recipient=username, ~theirPubKey);
-          }
-        | _ => ()
-        }
-        } catch {
-        | err => {
-          Js.log("Error parsing message");
-          Js.log(err);
-        }
-        }
-      });
     | None => Js.log("WebSocket not connected")
     }
   }
@@ -182,8 +157,15 @@ let make = (~currentUser: string) => {
                 Js.Dict.set(newSharedKeys, from, sharedKey)
                 setSharedKeys(_ => newSharedKeys)
               }
+            | Some("publicKeyRequestResponse") => {
+              let theirPubKey = messageObj->Js.Dict.get("publicKeyInfo")
+                ->Belt.Option.flatMap(Js.Json.decodeString)
+                ->Belt.Option.getWithDefault("");
+              Js.log("Received public key: " ++ theirPubKey);
+              performKeyExchange(~recipient=username, ~theirPubKey);
+              }
             | _ => ()
-            }
+          }
           } catch {
           | err => {
               Js.log("Error parsing message")
@@ -267,7 +249,7 @@ let make = (~currentUser: string) => {
         switch socket {
         | Some(_ws) => 
         Js.log("Requesting public key for user: " ++ user)
-        getPublicKeyAndPerformKeyExchange(user)
+        getPublicKey(user)
         setSelectedUser(_ => Some(user))
         | None => Js.log("WebSocket not connected")
         }
