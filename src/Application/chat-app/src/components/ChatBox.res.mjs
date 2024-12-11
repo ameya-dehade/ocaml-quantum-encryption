@@ -257,7 +257,7 @@ function ChatBox(props) {
                             children: [
                               JsxRuntime.jsx("h2", {
                                     children: "Available Users",
-                                    className: "text-lg font-bold mb-4"
+                                    className: "text-xl font-semibold text-gray-700 mb-4 px-4 py-2 bg-blue-100 rounded-t-lg border-b border-gray-200"
                                   }),
                               JsxRuntime.jsx("ul", {
                                     children: availableUsers.length !== 0 ? Belt_Array.mapWithIndex(availableUsers, (function (idx, user) {
@@ -265,15 +265,16 @@ function ChatBox(props) {
                                               return JsxRuntime.jsxs("li", {
                                                           children: [
                                                             JsxRuntime.jsx("span", {
-                                                                  children: user
+                                                                  children: user,
+                                                                  className: "truncate"
                                                                 }),
                                                             count !== undefined ? JsxRuntime.jsx("span", {
                                                                     children: String(count),
-                                                                    className: "bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center"
+                                                                    className: "bg-red-500 text-white text-xs rounded-full w-6 h-6 flex items-center justify-center"
                                                                   }) : null
                                                           ],
-                                                          className: "p-2 hover:bg-gray-100 cursor-pointer " + (
-                                                            Caml_obj.equal(selectedUser, user) ? "bg-blue-100" : ""
+                                                          className: "flex items-center justify-between px-4 py-2 cursor-pointer hover:bg-blue-50 " + (
+                                                            Caml_obj.equal(selectedUser, user) ? "bg-blue-200 font-semibold" : ""
                                                           ),
                                                           onClick: (function (param) {
                                                               var match = Js_dict.get(sharedKeys, user);
@@ -311,19 +312,19 @@ function ChatBox(props) {
                                                         }, String(idx));
                                             })) : JsxRuntime.jsx("li", {
                                             children: "No other users online",
-                                            className: "text-gray-500 text-center"
+                                            className: "text-gray-500 text-center px-4 py-2"
                                           }),
-                                    className: "bg-white rounded-lg p-2"
+                                    className: "flex-1 overflow-y-auto"
                                   })
                             ],
-                            className: "w-1/4 pr-4"
+                            className: "w-1/4 pr-4 flex flex-col bg-white rounded-lg shadow-md"
                           }),
                       JsxRuntime.jsx("div", {
                             children: selectedUser !== undefined ? JsxRuntime.jsxs(JsxRuntime.Fragment, {
                                     children: [
                                       JsxRuntime.jsx("div", {
                                             children: "Chat with " + selectedUser,
-                                            className: "text-lg font-bold mb-2"
+                                            className: "text-xl font-semibold text-gray-700 px-4 py-2 bg-blue-100 rounded-t-lg border-b border-gray-200"
                                           }),
                                       JsxRuntime.jsx("div", {
                                             children: messages.length !== 0 ? Belt_Array.mapWithIndex(Belt_Array.keepMap(messages, (function (msg) {
@@ -335,44 +336,49 @@ function ChatBox(props) {
                                                         })), (function (idx, msg) {
                                                       return JsxRuntime.jsxs("div", {
                                                                   children: [
-                                                                    JsxRuntime.jsxs("div", {
-                                                                          children: [
-                                                                            JsxRuntime.jsx("span", {
-                                                                                  children: msg.from + ": ",
-                                                                                  className: "font-bold"
-                                                                                }),
-                                                                            JsxRuntime.jsx("span", {
-                                                                                  children: msg.message
-                                                                                })
-                                                                          ]
+                                                                    JsxRuntime.jsx("div", {
+                                                                          children: msg.from + ":",
+                                                                          className: "font-medium text-blue-600"
+                                                                        }),
+                                                                    JsxRuntime.jsx("div", {
+                                                                          children: msg.message,
+                                                                          className: "text-gray-800"
                                                                         }),
                                                                     JsxRuntime.jsx("div", {
                                                                           children: msg.timestamp,
-                                                                          className: "text-xs text-gray-500"
+                                                                          className: "text-xs text-gray-500 mt-1"
                                                                         })
                                                                   ],
-                                                                  className: "mb-2"
+                                                                  className: "mb-4 p-3 rounded-lg " + (
+                                                                    msg.from === currentUser ? "bg-blue-50 self-end text-right" : "bg-gray-100 self-start text-left"
+                                                                  )
                                                                 }, String(idx));
                                                     })) : JsxRuntime.jsx("p", {
                                                     children: "No messages yet!",
-                                                    className: "text-gray-500 text-center"
+                                                    className: "text-gray-500 text-center mt-4"
                                                   }),
-                                            className: "flex-1 overflow-y-scroll mb-4 bg-white rounded-lg p-2"
+                                            className: "flex-1 overflow-y-auto p-4"
                                           }),
-                                      JsxRuntime.jsx(ChatInput.make, {
-                                            onSubmit: handleSendMessage
+                                      JsxRuntime.jsx("div", {
+                                            children: JsxRuntime.jsx(ChatInput.make, {
+                                                  onSubmit: handleSendMessage
+                                                }),
+                                            className: "p-4 border-t border-gray-200"
                                           })
                                     ]
                                   }) : JsxRuntime.jsx("div", {
-                                    children: "Pick a user to chat with",
-                                    className: "text-lg font-bold mb-2 text-center"
+                                    children: JsxRuntime.jsx("div", {
+                                          children: "Pick a user to chat with",
+                                          className: "text-lg font-bold text-gray-500"
+                                        }),
+                                    className: "flex items-center justify-center flex-1"
                                   }),
-                            className: "w-3/4 flex flex-col"
+                            className: "w-3/4 flex flex-col bg-white rounded-lg shadow-md"
                           })
                     ],
-                    className: "flex"
+                    className: "flex h-full"
                   }),
-              className: "p-4 bg-slate-200 w-full h-full flex flex-col rounded-lg"
+              className: "p-6 bg-gradient-to-r from-blue-200 to-slate-300 w-full h-full flex flex-col rounded-lg shadow-lg"
             });
 }
 

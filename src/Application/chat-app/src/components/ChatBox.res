@@ -290,83 +290,100 @@ let make = (~currentUser: string) => {
 
   }
 
-  <div className="p-4 bg-slate-200 w-full h-full flex flex-col rounded-lg">
-    <div className="flex">
-      <div className="w-1/4 pr-4">
-        <h2 className="text-lg font-bold mb-4">{React.string("Available Users")}</h2>
-        <ul className="bg-white rounded-lg p-2">
-          {Belt.Array.length(availableUsers) > 0 
-            ? availableUsers->Belt.Array.mapWithIndex((idx, user) => 
-              <li 
-                key={Belt.Int.toString(idx)} 
-                className={
-                  "p-2 hover:bg-gray-100 cursor-pointer " ++ 
-                  (selectedUser == Some(user) ? "bg-blue-100" : "")
-                }
-                onClick={_ => handleUserSelect(user)}
-              >
-                <span>{React.string(user)}</span>
-                {switch Js.Dict.get(unreadMessages, user) {
-                | Some(count) => 
-                  <span className="bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
-                    {React.string(Belt.Int.toString(count))}
-                  </span>
-                | None => React.null
-                }}
-              </li>
-            )->React.array
-            : <li className="text-gray-500 text-center">
-                {React.string("No other users online")}
-              </li>
-          }
-        </ul>
-      </div>
-      <div className="w-3/4 flex flex-col">
-        {switch selectedUser {
-        | Some(user) => 
-          <>
-            <div className="text-lg font-bold mb-2">
-              {React.string("Chat with " ++ user)}
-            </div>
-            <div className="flex-1 overflow-y-scroll mb-4 bg-white rounded-lg p-2">
-              {switch messages {
-              | [] => <p className="text-gray-500 text-center"> {React.string("No messages yet!")} </p>
-              | _ =>
-                messages
-                ->Belt.Array.keepMap(msg => 
-                  switch (selectedUser, msg.msg_type) {
-                  | (Some(selectedUserName), PrivateChat) => 
-                    if (
-                      (msg.from == selectedUserName && msg.to_ == Some(currentUser)) || 
-                      (msg.from == currentUser && msg.to_ == Some(selectedUserName))
-                    ) {
-                      Some(msg)
-                    } else {
-                      None
-                    }
-                  | _ => None
-                  }
-                )
-                ->Belt.Array.mapWithIndex((idx, msg) =>
-                  <div key={Belt.Int.toString(idx)} className="mb-2">
-                    <div>
-                      <span className="font-bold"> {React.string(msg.from ++ ": ")} </span>
-                      <span> {React.string(msg.message)} </span>
-                    </div>
-                    <div className="text-xs text-gray-500"> {React.string(msg.timestamp)} </div>
-                  </div>
-                )
-                ->React.array
+  <div className="p-6 bg-gradient-to-r from-blue-200 to-slate-300 w-full h-full flex flex-col rounded-lg shadow-lg">
+  <div className="flex h-full">
+    <div className="w-1/4 pr-4 flex flex-col bg-white rounded-lg shadow-md">
+      <h2 className="text-xl font-semibold text-gray-700 mb-4 px-4 py-2 bg-blue-100 rounded-t-lg border-b border-gray-200">
+        {React.string("Available Users")}
+      </h2>
+      <ul className="flex-1 overflow-y-auto">
+        {Belt.Array.length(availableUsers) > 0
+          ? availableUsers->Belt.Array.mapWithIndex((idx, user) =>
+            <li
+              key={Belt.Int.toString(idx)}
+              className={
+                "flex items-center justify-between px-4 py-2 cursor-pointer hover:bg-blue-50 " ++
+                (selectedUser == Some(user) ? "bg-blue-200 font-semibold" : "")
+              }
+              onClick={_ => handleUserSelect(user)}
+            >
+              <span className="truncate">{React.string(user)}</span>
+              {switch Js.Dict.get(unreadMessages, user) {
+              | Some(count) =>
+                <span className="bg-red-500 text-white text-xs rounded-full w-6 h-6 flex items-center justify-center">
+                  {React.string(Belt.Int.toString(count))}
+                </span>
+              | None => React.null
               }}
-            </div>
+            </li>
+          )->React.array
+          : <li className="text-gray-500 text-center px-4 py-2">
+              {React.string("No other users online")}
+            </li>
+        }
+      </ul>
+    </div>
+
+   
+    <div className="w-3/4 flex flex-col bg-white rounded-lg shadow-md">
+      {switch selectedUser {
+      | Some(user) =>
+        <>
+          <div className="text-xl font-semibold text-gray-700 px-4 py-2 bg-blue-100 rounded-t-lg border-b border-gray-200">
+            {React.string("Chat with " ++ user)}
+          </div>
+          <div className="flex-1 overflow-y-auto p-4">
+            {switch messages {
+            | [] =>
+              <p className="text-gray-500 text-center mt-4">
+                {React.string("No messages yet!")}
+              </p>
+            | _ =>
+              messages
+              ->Belt.Array.keepMap(msg =>
+                switch (selectedUser, msg.msg_type) {
+                | (Some(selectedUserName), PrivateChat) =>
+                  if (
+                    (msg.from == selectedUserName && msg.to_ == Some(currentUser)) ||
+                    (msg.from == currentUser && msg.to_ == Some(selectedUserName))
+                  ) {
+                    Some(msg)
+                  } else {
+                    None
+                  }
+                | _ => None
+                }
+              )
+              ->Belt.Array.mapWithIndex((idx, msg) =>
+                <div
+                  key={Belt.Int.toString(idx)}
+                  className={
+                    "mb-4 p-3 rounded-lg " ++
+                    (msg.from == currentUser ? "bg-blue-50 self-end text-right" : "bg-gray-100 self-start text-left")
+                  }
+                >
+                  <div className="font-medium text-blue-600">
+                    {React.string(msg.from ++ ":")}
+                  </div>
+                  <div className="text-gray-800">{React.string(msg.message)}</div>
+                  <div className="text-xs text-gray-500 mt-1">{React.string(msg.timestamp)}</div>
+                </div>
+              )
+              ->React.array
+            }}
+          </div>
+          <div className="p-4 border-t border-gray-200">
             <ChatInput onSubmit={handleSendMessage} />
-          </>
-        | None => 
-          <div className="text-lg font-bold mb-2 text-center">
+          </div>
+        </>
+      | None =>
+        <div className="flex items-center justify-center flex-1">
+          <div className="text-lg font-bold text-gray-500">
             {React.string("Pick a user to chat with")}
           </div>
-        }}
-      </div>
+        </div>
+      }}
     </div>
-  </div>;
+  </div>
+</div>
 }

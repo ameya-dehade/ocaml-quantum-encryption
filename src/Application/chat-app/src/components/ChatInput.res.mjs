@@ -38,8 +38,8 @@ function ChatInput(props) {
   return JsxRuntime.jsxs("div", {
               children: [
                 JsxRuntime.jsx("input", {
-                      className: "input input-bordered flex-1 mr-2",
-                      placeholder: "Type a message",
+                      className: "flex-1 px-4 py-2 rounded-md border border-gray-300 focus:ring-2 focus:ring-blue-500 outline-none text-gray-700",
+                      placeholder: "Type a message...",
                       type: "text",
                       value: text,
                       onKeyDown: handleKeyDown,
@@ -47,11 +47,14 @@ function ChatInput(props) {
                     }),
                 JsxRuntime.jsx("button", {
                       children: "Send",
-                      className: "btn btn-primary",
+                      className: "ml-3 px-4 py-2 rounded-md text-white font-medium " + (
+                        text === "" ? "bg-gray-400 cursor-not-allowed" : "bg-blue-500 hover:bg-blue-600"
+                      ),
+                      disabled: text === "",
                       onClick: handleSendClick
                     })
               ],
-              className: "flex items-center"
+              className: "flex items-center bg-gray-100 p-4 rounded-lg shadow-md"
             });
 }
 

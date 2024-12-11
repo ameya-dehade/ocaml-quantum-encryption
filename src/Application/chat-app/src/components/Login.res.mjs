@@ -37,32 +37,42 @@ function Login(props) {
         });
   };
   return JsxRuntime.jsx("div", {
-              children: JsxRuntime.jsxs("div", {
-                    children: [
-                      JsxRuntime.jsx("h2", {
-                            children: "Welcome to Chat",
-                            className: "card-title"
-                          }),
-                      JsxRuntime.jsx("input", {
-                            className: "input input-bordered mr-1 w-full text-black",
-                            placeholder: "Create username",
-                            type: "text",
-                            value: text,
-                            onKeyDown: handleKeyDown,
-                            onChange: handleInputChange
-                          }),
-                      JsxRuntime.jsx("div", {
-                            children: JsxRuntime.jsx("button", {
-                                  children: "Login",
-                                  className: "btn btn-primary",
-                                  onClick: handleButtonClick
+              children: JsxRuntime.jsx("div", {
+                    children: JsxRuntime.jsxs("div", {
+                          children: [
+                            JsxRuntime.jsx("h2", {
+                                  children: "Welcome to Chat",
+                                  className: "card-title text-2xl font-bold mb-4"
                                 }),
-                            className: "card-actions justify-end"
-                          })
-                    ],
-                    className: "card-body items-center text-center"
+                            JsxRuntime.jsx("p", {
+                                  children: "Create your username to start chatting!",
+                                  className: "text-gray-600 mb-6"
+                                }),
+                            JsxRuntime.jsx("input", {
+                                  className: "input input-bordered w-full px-4 py-2 text-lg rounded-md focus:ring-2 focus:ring-blue-500 outline-none mb-4",
+                                  placeholder: "Enter username",
+                                  type: "text",
+                                  value: text,
+                                  onKeyDown: handleKeyDown,
+                                  onChange: handleInputChange
+                                }),
+                            JsxRuntime.jsx("div", {
+                                  children: JsxRuntime.jsx("button", {
+                                        children: "Login",
+                                        className: "btn w-full py-2 text-lg rounded-md text-white font-semibold " + (
+                                          text === "" ? "bg-gray-400 cursor-not-allowed" : "bg-blue-500 hover:bg-blue-600"
+                                        ),
+                                        disabled: text === "",
+                                        onClick: handleButtonClick
+                                      }),
+                                  className: "card-actions justify-center"
+                                })
+                          ],
+                          className: "card-body text-center"
+                        }),
+                    className: "card bg-white text-black shadow-xl rounded-lg max-w-sm w-full p-6"
                   }),
-              className: "card bg-neutral text-neutral-content rounded-lg"
+              className: "flex items-center justify-center min-h-screen bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500"
             });
 }
 
