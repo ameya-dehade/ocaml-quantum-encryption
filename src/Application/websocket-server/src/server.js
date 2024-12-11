@@ -18,17 +18,6 @@ wss.on('connection', (ws) => {
           ws.username = messageData.username;
           clients.set(ws, messageData.username);
           
-          // Send the public key associated with the username to all clients
-          // clients.forEach((username, client) => {
-          //   if (username != messageData.username && client.readyState === WebSocket.OPEN) {
-          //     client.send(JSON.stringify({
-          //       type: 'publicKeyInfo',
-          //       from: messageData.username,
-          //       publicKeyInfo: messageData.publicKeyInfo
-          //     }));
-          //   }
-          // });
-
           // Store public key 
           console.log("SENT login pub key: ")
           console.log(messageData.pubKey)
