@@ -1,4 +1,6 @@
 (** Kyber Library Implementation *)
+open Core
+
 module type Kyber_Config_sig = sig
   val q : int
   val n : int
@@ -93,7 +95,7 @@ module Make_polynomial (C : Kyber_Config_sig) : Polynomial_t = struct
   let modulus_q = C.q
 
   type t = int list (* Type representing a polynomial as a list of coefficients *)
-  let modulus_poly = List.init (C.n + 1) (fun i -> if (i = 0 || i = C.n) then 1 else 0) (* x^n + 1 *)
+  let modulus_poly = List.init ~f:(fun i -> if (i = 0 || i = C.n) then 1 else 0) (C.n + 1) (* x^n + 1 *)
   let zero = [] (** The zero polynomial *)
 
   (* Pads polynomials to make them equal length. Pad them from the front i.e add 0s to the front *)
@@ -101,25 +103,25 @@ module Make_polynomial (C : Kyber_Config_sig) : Polynomial_t = struct
     let len1 = List.length p1 in
     let len2 = List.length p2 in
     if len1 > len2 then
-      (p1, List.init (len1 - len2) (fun _ -> 0) @ p2)
+      (p1, List.init ~f:(fun _ -> 0) (len1 - len2) @ p2)
     else if len1 < len2 then
-      (List.init (len2 - len1) (fun _ -> 0) @ p1, p2)
+      (List.init ~f:(fun _ -> 0) (len2 - len1) @ p1, p2)
     else
       (p1, p2)
 
   let add (p1 : t) (p2 : t) : t =
     let (padded_p1, padded_p2) = padding p1 p2 in
-    List.map2 ( + ) padded_p1 padded_p2
+    List.map2_exn ~f:(fun x y -> x + y) padded_p1 padded_p2
 
   let sub (p1 : t) (p2 : t) : t =
     let (padded_p1, padded_p2) = padding p1 p2 in
-    List.map2 ( - ) padded_p1 padded_p2
+    List.map2_exn ~f:(fun x y -> x - y) padded_p1 padded_p2
 
   let scalar_mul (scalar : int) (p : t) : t =
-    List.map (fun coef -> scalar * coef) p
+    List.map ~f:(fun coef -> scalar * coef) p
 
   let scalar_div (scalar : int) (p : t) : t =
-    List.map (fun coef -> coef / scalar) p
+    List.map ~f:(fun coef -> coef / scalar) p
 
   let mul (p1 : t)(p2 : t) : t =
     let rec front_add a b = match a, b with
@@ -129,7 +131,7 @@ module Make_polynomial (C : Kyber_Config_sig) : Polynomial_t = struct
     let rec mul_acc acc p q d = match p with
       | [] -> acc
       | x::xs ->
-        let shifted = List.init d (fun _ -> 0) @ List.map (fun c -> x * c) q in
+        let shifted = List.init d ~f:(fun _ -> 0) @ List.map ~f:(fun c -> x * c) q in
         mul_acc (front_add acc shifted) xs q (d + 1)
     in
     mul_acc [] p1 p2 0
@@ -141,13 +143,13 @@ module Make_polynomial (C : Kyber_Config_sig) : Polynomial_t = struct
       if degree_p < degree_m then
         p
       else
-        let lead_coeff = List.hd p in
-        let scaled_modulus = List.map (fun coef -> coef * lead_coeff) (m @ List.init (degree_p - degree_m) (fun _ -> 0)) in
+        let lead_coeff = List.hd_exn p in
+        let scaled_modulus = List.map ~f:(fun coef -> coef * lead_coeff) (m @ List.init (degree_p - degree_m) ~f:(fun _ -> 0)) in
         let reduced = sub p scaled_modulus in
-        poly_mod (List.tl reduced) m
+        poly_mod (List.tl_exn reduced) m
     in
     let mod_coeffs = poly_mod p modulus_poly in
-    List.map (fun coef -> ((coef mod modulus_q) + modulus_q) mod modulus_q) mod_coeffs
+    List.map ~f:(fun coef -> ((coef mod modulus_q) + modulus_q) mod modulus_q) mod_coeffs
 
   let add_and_reduce (p1 : t) (p2 : t) : t =
     reduce (add p1 p2)
@@ -167,29 +169,29 @@ module Make_polynomial (C : Kyber_Config_sig) : Polynomial_t = struct
       else
         0
     in 
-    List.map round_to_q_or_0 p
+    List.map ~f:round_to_q_or_0 p
 
   let binary_to_poly (message : bytes) : t =
     let byte_to_bits byte =
-      List.init 8 (fun i -> 
+      List.init 8 ~f:(fun i -> 
         if (int_of_char byte land (1 lsl (7 - i))) <> 0 then 1 else 0
       )
     in
-    let bytes_list = List.init (Bytes.length message) (fun i -> Bytes.get message i) in
-    List.flatten (List.map byte_to_bits bytes_list)
+    let bytes_list = List.init (Bytes.length message) ~f:(fun i -> Bytes.get message i) in
+    List.concat (List.map ~f:byte_to_bits bytes_list)
 
   let poly_to_binary (p : t) : bytes =
     let bits_to_byte bits =
-      List.fold_left (fun acc bit -> (acc lsl 1) lor bit) 0 bits
+      List.fold_left ~f:(fun acc bit -> (acc lsl 1) lor bit) ~init:0 bits
     in
     let rec split_list n lst =
       match lst with
       | [] -> []
-      | _ -> (List.filteri (fun i _ -> i < n) lst) :: (split_list n (List.filteri (fun i _ -> i >= n) lst))
+      | _ -> (List.filteri ~f:(fun i _ -> i < n) lst) :: (split_list n (List.filteri ~f:(fun i _ -> i >= n) lst))
     in
-    let bytes_list = List.map bits_to_byte (split_list 8 p) in
+    let bytes_list = List.map ~f:bits_to_byte (split_list 8 p) in
     let bytes = Bytes.create (List.length bytes_list) in
-    List.iteri (fun i byte -> Bytes.set bytes i (char_of_int byte)) bytes_list;
+    List.iteri ~f:(fun i byte -> Bytes.set bytes i (char_of_int byte)) bytes_list;
     bytes
 
   let from_coefficients coeffs = coeffs
@@ -197,15 +199,15 @@ module Make_polynomial (C : Kyber_Config_sig) : Polynomial_t = struct
   let to_coefficients p = p
 
   let to_string p =
-    String.concat " " (List.map string_of_int p)
+    String.concat ~sep:" " (List.map ~f:string_of_int p)
   
   let from_string s =
     s 
-    |> String.split_on_char ' '
-    |> List.map int_of_string
+    |> String.split_on_chars ~on:[' ']
+    |> List.map ~f:int_of_string
 
   let random _ : t =
-    List.init C.n (fun _ -> Random.int modulus_q)
+    List.init C.n ~f:(fun _ -> Random.int modulus_q)
 
   let random_small_coeff (eta : int) : t =
     let random_bit () = Random.int 2 in
@@ -230,52 +232,52 @@ module Make_poly_mat (P : Polynomial_t) = struct
   type t = P.t list list
   type poly = P.t
   let zero (rows : int) (cols : int) : t =
-    List.init rows (fun _ -> List.init cols (fun _ -> P.zero))
+    List.init rows ~f:(fun _ -> List.init cols ~f:(fun _ -> P.zero))
 
   let scalar_mul (scalar : int) (mat : t) : t =
-    List.map (List.map (P.scalar_mul scalar)) mat
+    List.map ~f:(List.map ~f:(P.scalar_mul scalar)) mat
 
   let add (m1 : t) (m2 : t) : t =
-    List.map2 (List.map2 P.add_and_reduce) m1 m2
+    List.map2_exn ~f:(List.map2_exn ~f:P.add_and_reduce) m1 m2
 
   let sub (m1 : t) (m2 : t) : t =
-    List.map2 (List.map2 P.sub_and_reduce) m1 m2
+    List.map2_exn ~f:(List.map2_exn ~f:P.sub_and_reduce) m1 m2
 
   let scalar_div (scalar : int) (mat : t) : t =
-    List.map (List.map (P.scalar_div scalar)) mat
+    List.map ~f:(List.map ~f:(P.scalar_div scalar)) mat
 
   let transpose (mat : t) : t =
-    List.init (List.length (List.hd mat)) (fun i ->
-      List.init (List.length mat) (fun j ->
-        List.nth (List.nth mat j) i
+    List.init (List.length (List.hd_exn mat)) ~f:(fun i ->
+      List.init (List.length mat) ~f:(fun j ->
+        List.nth_exn (List.nth_exn mat j) i
       )
     )
   let dot_product (row : P.t list) (col : P.t list) : P.t =
-    List.fold_left2 (fun acc p1 p2 -> P.add acc (P.mul p1 p2)) P.zero row col
+    List.fold2_exn ~f:(fun acc p1 p2 -> P.add acc (P.mul p1 p2)) ~init:P.zero row col
     |> P.reduce
 
   let mul (m1 : t) (m2 : t) : t =
-    List.init (List.length m1) (fun i ->
-      List.init (List.length (List.hd m2)) (fun j ->
-        dot_product (List.nth m1 i) (List.nth (transpose m2) j)
+    List.init (List.length m1)~f:(fun i ->
+      List.init (List.length (List.hd_exn m2)) ~f:(fun j ->
+        dot_product (List.nth_exn m1 i) (List.nth_exn (transpose m2) j)
       )
     )
   
   let reduce_matrix (mat : t) : t =
-    List.map (List.map P.reduce) mat
+    List.map ~f:(List.map ~f:P.reduce) mat
 
   let random (rows : int) (cols : int) : t =
-    List.init rows (fun _ -> List.init cols (fun _ -> P.random ()))
+    List.init rows ~f:(fun _ -> List.init cols ~f:(fun _ -> P.random ()))
 
   let random_small_coeff (rows : int) (cols : int) (eta : int): t =
-    List.init rows (fun _ -> List.init cols (fun _ -> P.random_small_coeff eta))
+    List.init rows ~f:(fun _ -> List.init cols ~f:(fun _ -> P.random_small_coeff eta))
 
   let get_poly (mat : t) (i : int) (j : int) : P.t =
-    List.nth (List.nth mat i) j
+    List.nth_exn (List.nth_exn mat i) j
 
   let set_poly (mat : t) (i : int) (j : int) (poly : P.t) : t =
-    List.mapi (fun row_index row ->
-      List.mapi (fun col_index p ->
+    List.mapi ~f:(fun row_index row ->
+      List.mapi ~f:(fun col_index p ->
         if row_index = i && col_index = j then
           poly
         else
@@ -284,7 +286,7 @@ module Make_poly_mat (P : Polynomial_t) = struct
     ) mat
 
   let map_poly (f : P.t -> P.t) (mat : t) : t =
-    List.map (List.map f) mat
+    List.map ~f:(List.map ~f) mat
   
   let to_list (mat : t) : P.t list list =
     mat
@@ -293,32 +295,32 @@ module Make_poly_mat (P : Polynomial_t) = struct
     mat
 
   let dimensions (mat : t) : int * int =
-    (List.length mat, List.length (List.hd mat))
+    (List.length mat, List.length (List.hd_exn mat))
 
   let to_string (mat : t) : string =
     match mat with
   | [] -> ""
   | rows -> 
       rows 
-      |> List.map (fun row -> 
+      |> List.map ~f:(fun row -> 
           row 
-          |> List.map P.to_coefficients
-          |> List.map (fun coeffs -> String.concat " " (List.map string_of_int coeffs))
-          |> String.concat ",")
-      |> String.concat "\n"
+          |> List.map ~f:P.to_coefficients
+          |> List.map ~f:(fun coeffs -> String.concat ~sep:" " (List.map ~f:string_of_int coeffs))
+          |> String.concat ~sep:",")
+      |> String.concat ~sep:"\n"
 
   let from_string (s : string) : t =
-    if s = "" then []
+    if String.equal s "" then []
     else
       s 
-      |> String.split_on_char '\n'
-      |> List.map (fun row -> 
+      |> String.split_on_chars ~on:['\n']
+      |> List.map ~f:(fun row -> 
           row 
-          |> String.split_on_char ','
-          |> List.map (fun coeffs -> 
+          |> String.split_on_chars ~on:[',']
+          |> List.map ~f:(fun coeffs -> 
               coeffs 
-              |> String.split_on_char ' '
-              |> List.map int_of_string
+              |> String.split_on_chars ~on:[' ']
+              |> List.map ~f:int_of_string
               |> P.from_coefficients
             )
         )
@@ -369,18 +371,18 @@ module Make_Kyber (C : Kyber_Config_sig) : Kyber_t = struct
     u ^ "|" ^ v
   
   let public_key_from_string (s : string) : public_key =
-    let split = String.split_on_char '|' s in
-    let a = PolyMat.from_string (List.nth split 0) in
-    let t = PolyMat.from_string (List.nth split 1) in
+    let split = String.split_on_chars ~on:['|'] s in
+    let a = PolyMat.from_string (List.nth_exn split 0) in
+    let t = PolyMat.from_string (List.nth_exn split 1) in
     (a, t)
 
   let private_key_from_string (s : string) : private_key =
     PolyMat.from_string s
   
   let ciphertext_from_string (s : string) : ciphertext =
-    let split = String.split_on_char '|' s in
-    let u = PolyMat.from_string (List.nth split 0) in
-    let v = PolyMat.from_string (List.nth split 1) in
+    let split = String.split_on_chars ~on:['|'] s in
+    let u = PolyMat.from_string (List.nth_exn split 0) in
+    let v = PolyMat.from_string (List.nth_exn split 1) in
     (u, v)
 
   let generate_keypair _ =

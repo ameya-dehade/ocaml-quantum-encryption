@@ -1,4 +1,6 @@
 @react.component
+import * as ChatEncryption from "../bindings/ChatEncryption.res.mjs";
+
 let make = (~currentUser: string) => {
   open MessageType;
   let (messages, setMessages) = React.useState((): array<MessageType.t> => []);
@@ -13,7 +15,7 @@ let make = (~currentUser: string) => {
 
   // Key Exchange Logic
   let performKeyExchange = (~recipient: string, ~theirPubKey: string, ws) => {
-    let (sharedKey, encryptedSharedKey) = Encryption.generateAndEncryptSharedKey(~theirPubKey);
+    let (sharedKey, encryptedSharedKey) = ChatEncryption.generate_and_encrypt_shared_key(~theirPubKey);
     Js.log("Generated shared key")
     Js.log(sharedKey)
     Js.log(encryptedSharedKey)
@@ -50,9 +52,9 @@ let make = (~currentUser: string) => {
         
         ws->WebSocket.onOpen(() => {
           Js.log("Connected to WebSocket")
-          Encryption.randomnessSetup();
+          ChatEncryption.randomness_setup();
           Js.log("Generating keypair")
-          let (pubKey, privKey) = Encryption.generateKeypair();
+          let (pubKey, privKey) = ChatEncryption.generate_keypair_for_new_user();
           Js.log("Public key : " ++ pubKey)
           Js.log("Private key : " ++ privKey)
           setPubKey(_ => pubKey);
@@ -89,7 +91,7 @@ let make = (~currentUser: string) => {
                   ->Belt.Option.flatMap(Js.Json.decodeString)
                   ->Belt.Option.getWithDefault("Unknown")
                 let sharedKey = Js.Dict.unsafeGet(sharedKeys, sender)
-                let decryptedMessage = Encryption.decryptMessage(~sharedKey, ~nonce, ~cipher=encryptedMessage);
+                let decryptedMessage = ChatEncryption.decrypt_message(~sharedKey, ~nonce, ~cipher=encryptedMessage);
                 Js.log("Message sender")
                 Js.log(messageObj->Js.Dict.get("from")
                   ->Belt.Option.flatMap(Js.Json.decodeString)
@@ -155,7 +157,7 @@ let make = (~currentUser: string) => {
                   ->Belt.Option.getWithDefault("")
                 
                 // Decrypt the shared key
-                let sharedKey = Encryption.decryptSharedKey(~myPrivKey=privKey, ~cipher=encryptedSharedKey);
+                let sharedKey = ChatEncryption.decrypt_sharedKey(~myPrivKey=privKey, ~cipher=encryptedSharedKey);
                 Js.log("Decrypted shared key")
                 Js.log(sharedKey)
                 let newSharedKeys = Js.Dict.fromArray(Js.Dict.entries(sharedKeys))
@@ -224,7 +226,7 @@ let make = (~currentUser: string) => {
     
     // Encrypt the message
     let sharedKey = Js.Dict.unsafeGet(sharedKeys, Js.Option.getExn(selectedUser))
-    let (nonce, encryptedMessage) = Encryption.encryptMessage(~sharedKey, ~message=Bytes.of_string(message))
+    let (nonce, encryptedMessage) = ChatEncryption.encrypt_message(~sharedKey, ~message=Bytes.of_string(message))
     Js.Dict.set(messageData, "message", Js.Json.string(encryptedMessage))
     Js.Dict.set(messageData, "nonce", Js.Json.string(nonce))
     
