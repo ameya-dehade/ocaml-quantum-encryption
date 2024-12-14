@@ -24,7 +24,7 @@
   {2 Implementation Notes}
   - All polynomial operations are implemented in the Polynomial module
   - Matrix operations are handled by the PolyMat module
-  - Random sampling is used for key generation and encryption
+  - Random sampling in a Centered Binomial Distribution is used for key generation and encryption
   - The implementation includes noise sampling for security
 
   {2 Usage Example}
@@ -167,15 +167,33 @@ end
 *)
 module Make_poly_mat : functor (P : Polynomial_t) -> PolyMat_t with type poly = P.t
 
-(** 
-  Module type for Kyber key encapsulation mechanism (KEM).
-  @type poly_mat - Type representing a polynomial matrix.
-  @type public_key - Type representing a public key, which is a pair of polynomial matrices.
-  @type private_key - Type representing a private key, which is a polynomial matrix.
-  @type ciphertext - Type representing a ciphertext, which is a pair of polynomial matrices.
-  @val generate_keypair - Generates a public/private key pair.
-  @val encrypt - Encrypts a message using a public key.
-  @val decrypt - Decrypts a ciphertext using a private key.
+(** Kyber module type specification for post-quantum key encapsulation mechanism (KEM).
+  This module implements the Kyber key encapsulation mechanism, which is a 
+  lattice-based cryptographic algorithm designed to be secure against quantum computer attacks.
+
+  {b Key Features:}
+  - Generates public/private key pairs
+  - Encrypts and decrypts messages using the Kyber KEM scheme
+  - Provides serialization/deserialization of keys and ciphertexts
+
+  {4 Types}
+  {ul
+    {- [poly_mat]: Represents polynomial matrices used in Kyber operations}
+    {- [public_key]: A tuple of two polynomial matrices (A, s)}
+    {- [private_key]: A single polynomial matrix}
+    {- [ciphertext]: A tuple of two polynomial matrices representing encrypted data}
+  }
+
+  {4 Key Functions}
+  {ul
+    {- Key generation: [generate_keypair]}
+    {- Encryption: [encrypt]}
+    {- Decryption: [decrypt]}
+    {- Serialization: [*_to_string] functions}
+    {- Deserialization: [*_from_string] functions}
+  }
+
+  @see <https://pq-crystals.org/kyber/> Official Kyber documentation
 *)
 module type Kyber_t = sig
   type poly_mat
