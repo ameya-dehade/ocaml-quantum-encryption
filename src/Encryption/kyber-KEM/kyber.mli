@@ -83,7 +83,7 @@ module Test_Kyber_Config_Mini : Kyber_Config_sig
 module type Polynomial_t = sig
   type t
   val modulus_q : int
-  val modulus_poly : int list
+  val modulus_poly : t
   val zero : t
   val add : t -> t -> t
   val sub : t -> t -> t

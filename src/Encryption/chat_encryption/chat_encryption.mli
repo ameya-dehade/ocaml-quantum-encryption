@@ -3,9 +3,6 @@
 *)
 
 module ChatEncryption : sig
-  type public_key
-  type private_key
-  type ciphertext
 
   val randomness_setup : unit -> unit
   

@@ -45,7 +45,7 @@ end
 module type Polynomial_t = sig
   type t
   val modulus_q : int
-  val modulus_poly : int list
+  val modulus_poly : t
   val zero : t
   val add : t -> t -> t
   val sub : t -> t -> t
@@ -92,6 +92,7 @@ module type PolyMat_t = sig
 end
 
 module Make_polynomial (C : Kyber_Config_sig) : Polynomial_t = struct
+  Random.self_init ()
   let modulus_q = C.q
 
   type t = int list (* Type representing a polynomial as a list of coefficients *)
