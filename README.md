@@ -1,7 +1,7 @@
 # ocaml-quantum-encryption
 Quantum Encryption Chat Application for Functional Programming Final Project.
 
-Implementation of a Rescript Chat App that uses the Kyber Algorithm for key exchange, and uses AES-GCM for subsequent message encryption. This repository has two parts:
+Implementation of a Rescript Chat App that uses the Kyber Algorithm for key exchange, and uses AES-GCM for subsequent message encryption. This repository has two parts in the src folder:
 
 1. **Encryption library** <br>
    a. Kyber.ml - Contains all the logic for the Kyber's Key Generation, Encryption and Decryption, along with implementations for the Polynomial and Polynomial Matrices that are used.<br>
