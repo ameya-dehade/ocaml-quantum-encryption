@@ -20,9 +20,9 @@ wss.on('connection', (ws) => {
           
           // Store public key 
           console.log("SENT login pub key: ")
-          console.log(messageData.pubKey)
+          //console.log(messageData.pubKey)
           publicKeys.set(messageData.username, messageData.pubKey);
-          console.log(publicKeys)
+          //console.log(publicKeys)
           
           // Broadcast the updated user list to all clients
           broadcastUserList();
@@ -37,6 +37,7 @@ wss.on('connection', (ws) => {
                 from: messageData.from,
                 to: messageData.to,
                 message: messageData.message,
+                nonce: messageData.nonce,
                 timestamp: messageData.timestamp
               }));
             }
@@ -66,7 +67,7 @@ wss.on('connection', (ws) => {
                 from: messageData.to,
                 publicKeyInfo: publicKeys.get(messageData.to)
               }));
-              console.log('Public key:', publicKeys.get(messageData.to));
+              //console.log('Public key:', publicKeys.get(messageData.to));
             }
           });
           break;

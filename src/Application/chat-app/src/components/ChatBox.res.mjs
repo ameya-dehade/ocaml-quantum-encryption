@@ -230,11 +230,9 @@ function ChatBox(props) {
     ChatEncryption.encrypt_message(sharedKey, Bytes.of_string(message)).then(function (response) {
           messageData["message"] = response[1];
           messageData["nonce"] = response[0];
-          return Promise.resolve();
-        });
-    if (socket !== undefined) {
-      Caml_option.valFromOption(socket).send(JSON.stringify(messageData));
-      return setMessages(function (prev) {
+          if (socket !== undefined) {
+            Caml_option.valFromOption(socket).send(JSON.stringify(messageData));
+            setMessages(function (prev) {
                   var newMessage = {
                     msg_type: "PrivateChat",
                     from: currentUser,
@@ -244,8 +242,9 @@ function ChatBox(props) {
                   };
                   return Belt_Array.concat(prev, [newMessage]);
                 });
-    }
-    
+          }
+          return Promise.resolve();
+        });
   };
   return JsxRuntime.jsx("div", {
               children: JsxRuntime.jsxs("div", {

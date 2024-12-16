@@ -244,29 +244,28 @@ let make = (~currentUser: string) => {
     -> Promise.then(response => {
       Js.Dict.set(messageData, "message", Js.Json.string(snd(response)))
       Js.Dict.set(messageData, "nonce", Js.Json.string(fst(response)))
+      switch socket {
+        | Some(ws) => {
+            // Send the message
+            ws->WebSocket.send(Js.Json.stringify(Js.Json.object_(messageData)))
+            
+            // Immediately add the message to the local messages state
+            setMessages(prev => {
+              let newMessage = {
+                msg_type: PrivateChat,
+                from: currentUser,
+                to_: selectedUser,
+                message: message,
+                timestamp: timestamp
+              }
+              
+              Belt.Array.concat(prev, [newMessage])
+            })
+          }
+        | None => ()
+      }
       Promise.resolve()
     })
-    
-    switch socket {
-    | Some(ws) => {
-        // Send the message
-        ws->WebSocket.send(Js.Json.stringify(Js.Json.object_(messageData)))
-        
-        // Immediately add the message to the local messages state
-        setMessages(prev => {
-          let newMessage = {
-            msg_type: PrivateChat,
-            from: currentUser,
-            to_: selectedUser,
-            message: message,
-            timestamp: timestamp
-          }
-          
-          Belt.Array.concat(prev, [newMessage])
-        })
-      }
-    | None => ()
-    }
   }
 
   let handleUserSelect = user => {
