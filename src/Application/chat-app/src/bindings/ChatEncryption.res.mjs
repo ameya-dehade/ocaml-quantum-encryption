@@ -59,6 +59,8 @@ function generate_keypair_for_new_user() {
 }
 
 function decrypt_recieved_shared_key(my_priv_key, cipher) {
+  console.log("Received private key in function: ", my_priv_key);
+  console.log("Received cipher in function: ", cipher);
   return KyberKEM.decrypt(my_priv_key, cipher);
 }
 

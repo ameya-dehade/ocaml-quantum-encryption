@@ -123,6 +123,8 @@ let generate_keypair_for_new_user = () => {
 }
 
 let decrypt_recieved_shared_key = (my_priv_key: string, cipher: string) => {
+  Js.Console.log2("Received private key in function: ", my_priv_key)
+  Js.Console.log2("Received cipher in function: ", cipher)
   let decrypted = KyberKEM.decrypt(my_priv_key, cipher)
   decrypted
 }

@@ -12,8 +12,9 @@ let make = (~currentUser: string) => {
   let (availableUsers, setAvailableUsers) = React.useState(() => []);
   let (selectedUser, setSelectedUser) = React.useState(() => None);
   let (sharedKeys, setSharedKeys) = React.useState(() => Js.Dict.empty());
-  let (privKey, setPrivKey) = React.useState(() => "");
+  // let (privKey, setPrivKey) = React.useState(() => "");
   let (unreadMessages, setUnreadMessages) = React.useState(() => Js.Dict.empty());
+  let privKeyRef = React.useRef("");
 
 
   // Key Exchange Logic
@@ -61,10 +62,11 @@ let make = (~currentUser: string) => {
           Js.log("Generating keypair")
           let (pubKey, privKey) = ChatEncryption.generate_keypair_for_new_user();
           Js.log("Public key generated")
-          setPrivKey(_ => {
-            Js.log("Private key generated and set")
-            privKey
-          });
+          privKeyRef.current = privKey;
+          // setPrivKey(_ => {
+          //   Js.log("Private key generated and set")
+          //   privKey
+          // });
           Js.log(privKey)
           // Send login message
           let loginData = Js.Dict.empty()
@@ -167,10 +169,10 @@ let make = (~currentUser: string) => {
                   ->Belt.Option.getWithDefault("")
                 // Decrypt the shared key
                 Js.log("Private Key Before Decrypting Message")
-                Js.log(privKey)
-                let sharedKey = ChatEncryption.decrypt_recieved_shared_key(privKey, encryptedSharedKey)
+                Js.log(privKeyRef.current)
+                let sharedKey = ChatEncryption.decrypt_recieved_shared_key(privKeyRef.current, encryptedSharedKey)
                 Js.log("Decrypted shared key")
-                // Js.log(sharedKey)
+                Js.log(sharedKey)
                 let newSharedKeys = Js.Dict.fromArray(Js.Dict.entries(sharedKeys))
                 Js.Dict.set(newSharedKeys, from, Bytes.to_string(sharedKey))
                 setSharedKeys(_ => newSharedKeys)

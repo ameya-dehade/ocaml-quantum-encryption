@@ -44,15 +44,11 @@ function ChatBox(props) {
   var setSharedKeys = match$4[1];
   var sharedKeys = match$4[0];
   var match$5 = React.useState(function () {
-        return "";
-      });
-  var setPrivKey = match$5[1];
-  var privKey = match$5[0];
-  var match$6 = React.useState(function () {
         return {};
       });
-  var setUnreadMessages = match$6[1];
-  var unreadMessages = match$6[0];
+  var setUnreadMessages = match$5[1];
+  var unreadMessages = match$5[0];
+  var privKeyRef = React.useRef("");
   var performKeyExchange = function (recipient, theirPubKey, ws) {
     return ChatEncryption.generate_and_encrypt_shared_key(theirPubKey).then(function (response) {
                 console.log("Generated shared key");
@@ -91,10 +87,7 @@ function ChatBox(props) {
                 var match = ChatEncryption.generate_keypair_for_new_user();
                 var privKey = match[1];
                 console.log("Public key generated");
-                setPrivKey(function (param) {
-                      console.log("Private key generated and set");
-                      return privKey;
-                    });
+                privKeyRef.current = privKey;
                 console.log(privKey);
                 var loginData = {};
                 loginData["type"] = "login";
@@ -119,9 +112,10 @@ function ChatBox(props) {
                         var from = Belt_Option.getWithDefault(Belt_Option.flatMap(Js_dict.get(messageObj, "from"), Js_json.decodeString), "Unknown");
                         var encryptedSharedKey = Belt_Option.getWithDefault(Belt_Option.flatMap(Js_dict.get(messageObj, "encryptedSharedKey"), Js_json.decodeString), "");
                         console.log("Private Key Before Decrypting Message");
-                        console.log(privKey);
-                        var sharedKey = ChatEncryption.decrypt_recieved_shared_key(privKey, encryptedSharedKey);
+                        console.log(privKeyRef.current);
+                        var sharedKey = ChatEncryption.decrypt_recieved_shared_key(privKeyRef.current, encryptedSharedKey);
                         console.log("Decrypted shared key");
+                        console.log(sharedKey);
                         var newSharedKeys = Js_dict.fromArray(Js_dict.entries(sharedKeys));
                         newSharedKeys[from] = Bytes.to_string(sharedKey);
                         return setSharedKeys(function (param) {
