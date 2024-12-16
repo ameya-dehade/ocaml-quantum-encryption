@@ -11,10 +11,12 @@ let make = (~currentUser: string) => {
   let (socket, setSocket) = React.useState(() => None);
   let (availableUsers, setAvailableUsers) = React.useState(() => []);
   let (selectedUser, setSelectedUser) = React.useState(() => None);
-  let (sharedKeys, setSharedKeys) = React.useState(() => Js.Dict.empty());
+  // let (sharedKeys, setSharedKeys) = React.useState(() => Js.Dict.empty());
   // let (privKey, setPrivKey) = React.useState(() => "");
   let (unreadMessages, setUnreadMessages) = React.useState(() => Js.Dict.empty());
   let privKeyRef = React.useRef("");
+  let sharedKeysRef = React.useRef(Js.Dict.empty());
+
 
 
   // Key Exchange Logic
@@ -32,9 +34,13 @@ let make = (~currentUser: string) => {
       ws->WebSocket.send(Js.Json.stringify(Js.Json.object_(keyExchangeMessage)));
 
       // Store the shared key locally
-      let newSharedKeys = Js.Dict.fromArray(Js.Dict.entries(sharedKeys))
+      // let newSharedKeys = Js.Dict.fromArray(Js.Dict.entries(sharedKeys))
+      // Js.Dict.set(newSharedKeys, recipient, Bytes.to_string(response["sharedKey"]));
+      // setSharedKeys(_ => newSharedKeys);
+      let newSharedKeys = Js.Dict.fromArray(Js.Dict.entries(sharedKeysRef.current));
       Js.Dict.set(newSharedKeys, recipient, Bytes.to_string(response["sharedKey"]));
-      setSharedKeys(_ => newSharedKeys);
+      sharedKeysRef.current = newSharedKeys; // Update the ref
+
       Promise.resolve()
     })
   }
@@ -99,7 +105,10 @@ let make = (~currentUser: string) => {
                 let sender = messageObj->Js.Dict.get("from")
                   ->Belt.Option.flatMap(Js.Json.decodeString)
                   ->Belt.Option.getWithDefault("Unknown")
-                let sharedKey = Js.Dict.unsafeGet(sharedKeys, sender)
+                // let sharedKey = Js.Dict.unsafeGet(sharedKeys, sender)
+                let sharedKey = Js.Dict.get(sharedKeysRef.current, sender)
+                  ->Belt.Option.getExn;
+
                 let _ = ChatEncryption.decrypt_message(sharedKey, nonce, encryptedMessage)
                         -> Promise.then(decryptedMessage => {
                             Js.log("Message sender")
@@ -173,9 +182,9 @@ let make = (~currentUser: string) => {
                 let sharedKey = ChatEncryption.decrypt_recieved_shared_key(privKeyRef.current, encryptedSharedKey)
                 Js.log("Decrypted shared key")
                 Js.log(sharedKey)
-                let newSharedKeys = Js.Dict.fromArray(Js.Dict.entries(sharedKeys))
-                Js.Dict.set(newSharedKeys, from, Bytes.to_string(sharedKey))
-                setSharedKeys(_ => newSharedKeys)
+                let newSharedKeys = Js.Dict.fromArray(Js.Dict.entries(sharedKeysRef.current));
+                Js.Dict.set(newSharedKeys, from, Bytes.to_string(sharedKey));
+                sharedKeysRef.current = newSharedKeys; // Update the ref
               }
             | Some("publicKeyRequestResponse") => {
               let theirPubKey = messageObj->Js.Dict.get("publicKeyInfo")
@@ -241,7 +250,8 @@ let make = (~currentUser: string) => {
     Js.Dict.set(messageData, "timestamp", Js.Json.string(timestamp))
     
     // Encrypt the message
-    let sharedKey = Js.Dict.unsafeGet(sharedKeys, Js.Option.getExn(selectedUser))
+    // let sharedKey = Js.Dict.unsafeGet(sharedKeys, Js.Option.getExn(selectedUser))
+    let sharedKey = Js.Dict.unsafeGet(sharedKeysRef.current, Js.Option.getExn(selectedUser))
     let _ = ChatEncryption.encrypt_message(sharedKey, Bytes.of_string(message))
     -> Promise.then(response => {
       Js.Dict.set(messageData, "message", Js.Json.string(snd(response)))
@@ -271,7 +281,7 @@ let make = (~currentUser: string) => {
   }
 
   let handleUserSelect = user => {
-    switch Js.Dict.get(sharedKeys, user) {
+    switch Js.Dict.get(sharedKeysRef.current, user) {
     | Some(_) => {
       // Reset unread messages for the selected user
       let newUnreadMessages = Js.Dict.fromArray(

@@ -149,6 +149,8 @@ let create_crypto_key = async (shared_key : string) => {
 
 let encrypt_message = async (shared_key: string, message: bytes) => {
   // Encrypt message using AES_GCM from Web Crypto API
+  Js.Console.log2("Encrypting message with shared key: ", shared_key)
+  Js.Console.log2("Message to encrypt: ", message)
   try {
     let shared_crypto_key = await create_crypto_key(shared_key)
     let nonce = getRandomValues(Js.Typed_array.Uint8Array.fromLength(12))
@@ -170,6 +172,9 @@ let encrypt_message = async (shared_key: string, message: bytes) => {
 
 let decrypt_message = async (shared_key: string, nonce: string, cipher: string) => {
   // Encrypt message using AES_GCM from Web Crypto API
+  Js.Console.log2("Decrypting message with shared key in function: ", shared_key)
+  Js.Console.log2("Nonce in function: ", nonce)
+  Js.Console.log2("Cipher in function: ", cipher)
   try {
     let shared_crypto_key = await create_crypto_key(shared_key)
     let nonce_array = Bytes.of_string(nonce)->bytesToArrayBuffer

@@ -41,14 +41,10 @@ function ChatBox(props) {
   var match$4 = React.useState(function () {
         return {};
       });
-  var setSharedKeys = match$4[1];
-  var sharedKeys = match$4[0];
-  var match$5 = React.useState(function () {
-        return {};
-      });
-  var setUnreadMessages = match$5[1];
-  var unreadMessages = match$5[0];
+  var setUnreadMessages = match$4[1];
+  var unreadMessages = match$4[0];
   var privKeyRef = React.useRef("");
+  var sharedKeysRef = React.useRef({});
   var performKeyExchange = function (recipient, theirPubKey, ws) {
     return ChatEncryption.generate_and_encrypt_shared_key(theirPubKey).then(function (response) {
                 console.log("Generated shared key");
@@ -59,11 +55,9 @@ function ChatBox(props) {
                 keyExchangeMessage["to"] = recipient;
                 keyExchangeMessage["encryptedSharedKey"] = response.encryptedSharedKey;
                 ws.send(JSON.stringify(keyExchangeMessage));
-                var newSharedKeys = Js_dict.fromArray(Js_dict.entries(sharedKeys));
+                var newSharedKeys = Js_dict.fromArray(Js_dict.entries(sharedKeysRef.current));
                 newSharedKeys[recipient] = Bytes.to_string(response.sharedKey);
-                setSharedKeys(function (param) {
-                      return newSharedKeys;
-                    });
+                sharedKeysRef.current = newSharedKeys;
                 return Promise.resolve();
               });
   };
@@ -116,16 +110,15 @@ function ChatBox(props) {
                         var sharedKey = ChatEncryption.decrypt_recieved_shared_key(privKeyRef.current, encryptedSharedKey);
                         console.log("Decrypted shared key");
                         console.log(sharedKey);
-                        var newSharedKeys = Js_dict.fromArray(Js_dict.entries(sharedKeys));
+                        var newSharedKeys = Js_dict.fromArray(Js_dict.entries(sharedKeysRef.current));
                         newSharedKeys[from] = Bytes.to_string(sharedKey);
-                        return setSharedKeys(function (param) {
-                                    return newSharedKeys;
-                                  });
+                        sharedKeysRef.current = newSharedKeys;
+                        return ;
                     case "privateChat" :
                         var encryptedMessage = Belt_Option.getWithDefault(Belt_Option.flatMap(Js_dict.get(messageObj, "message"), Js_json.decodeString), "");
                         var nonce = Belt_Option.getWithDefault(Belt_Option.flatMap(Js_dict.get(messageObj, "nonce"), Js_json.decodeString), "");
                         var sender = Belt_Option.getWithDefault(Belt_Option.flatMap(Js_dict.get(messageObj, "from"), Js_json.decodeString), "Unknown");
-                        var sharedKey$1 = sharedKeys[sender];
+                        var sharedKey$1 = Belt_Option.getExn(Js_dict.get(sharedKeysRef.current, sender));
                         ChatEncryption.decrypt_message(sharedKey$1, nonce, encryptedMessage).then(function (decryptedMessage) {
                               console.log("Message sender");
                               console.log(Belt_Option.getWithDefault(Belt_Option.flatMap(Js_dict.get(messageObj, "from"), Js_json.decodeString), "Unknown"));
@@ -220,7 +213,7 @@ function ChatBox(props) {
     }
     messageData["from"] = currentUser;
     messageData["timestamp"] = timestamp;
-    var sharedKey = sharedKeys[Js_option.getExn(selectedUser)];
+    var sharedKey = sharedKeysRef.current[Js_option.getExn(selectedUser)];
     ChatEncryption.encrypt_message(sharedKey, Bytes.of_string(message)).then(function (response) {
           messageData["message"] = response[1];
           messageData["nonce"] = response[0];
@@ -267,7 +260,7 @@ function ChatBox(props) {
                                                             Caml_obj.equal(selectedUser, user) ? "bg-blue-200 font-semibold" : ""
                                                           ),
                                                           onClick: (function (param) {
-                                                              var match = Js_dict.get(sharedKeys, user);
+                                                              var match = Js_dict.get(sharedKeysRef.current, user);
                                                               if (match === undefined) {
                                                                 if (socket !== undefined) {
                                                                   console.log("Requesting public key for user: " + user);
