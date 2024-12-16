@@ -47,13 +47,14 @@ function ChatBox(props) {
   var sharedKeysRef = React.useRef({});
   var performKeyExchange = function (recipient, theirPubKey, ws) {
     return ChatEncryption.generate_and_encrypt_shared_key(theirPubKey).then(function (response) {
-                console.log("Generated shared key");
+                console.log("Generated shared key : ");
                 console.log(response.sharedKey);
                 var keyExchangeMessage = {};
                 keyExchangeMessage["type"] = "keyExchange";
                 keyExchangeMessage["from"] = currentUser;
                 keyExchangeMessage["to"] = recipient;
                 keyExchangeMessage["encryptedSharedKey"] = response.encryptedSharedKey;
+                console.log("Shared encrypted shared key");
                 ws.send(JSON.stringify(keyExchangeMessage));
                 var newSharedKeys = Js_dict.fromArray(Js_dict.entries(sharedKeysRef.current));
                 newSharedKeys[recipient] = Bytes.to_string(response.sharedKey);
@@ -79,10 +80,8 @@ function ChatBox(props) {
                 console.log("Connected to WebSocket");
                 console.log("Generating keypair");
                 var match = ChatEncryption.generate_keypair_for_new_user();
-                var privKey = match[1];
-                console.log("Public key generated");
-                privKeyRef.current = privKey;
-                console.log(privKey);
+                console.log("Public and private key generated");
+                privKeyRef.current = match[1];
                 var loginData = {};
                 loginData["type"] = "login";
                 loginData["username"] = currentUser;
@@ -105,10 +104,8 @@ function ChatBox(props) {
                         console.log("Received key exchange request");
                         var from = Belt_Option.getWithDefault(Belt_Option.flatMap(Js_dict.get(messageObj, "from"), Js_json.decodeString), "Unknown");
                         var encryptedSharedKey = Belt_Option.getWithDefault(Belt_Option.flatMap(Js_dict.get(messageObj, "encryptedSharedKey"), Js_json.decodeString), "");
-                        console.log("Private Key Before Decrypting Message");
-                        console.log(privKeyRef.current);
                         var sharedKey = ChatEncryption.decrypt_recieved_shared_key(privKeyRef.current, encryptedSharedKey);
-                        console.log("Decrypted shared key");
+                        console.log("Decrypted shared key : ");
                         console.log(sharedKey);
                         var newSharedKeys = Js_dict.fromArray(Js_dict.entries(sharedKeysRef.current));
                         newSharedKeys[from] = Bytes.to_string(sharedKey);
@@ -116,12 +113,12 @@ function ChatBox(props) {
                         return ;
                     case "privateChat" :
                         var encryptedMessage = Belt_Option.getWithDefault(Belt_Option.flatMap(Js_dict.get(messageObj, "message"), Js_json.decodeString), "");
+                        console.log("Encrypted Message Recieved : " + encryptedMessage);
                         var nonce = Belt_Option.getWithDefault(Belt_Option.flatMap(Js_dict.get(messageObj, "nonce"), Js_json.decodeString), "");
                         var sender = Belt_Option.getWithDefault(Belt_Option.flatMap(Js_dict.get(messageObj, "from"), Js_json.decodeString), "Unknown");
                         var sharedKey$1 = Belt_Option.getExn(Js_dict.get(sharedKeysRef.current, sender));
                         ChatEncryption.decrypt_message(sharedKey$1, nonce, encryptedMessage).then(function (decryptedMessage) {
-                              console.log("Message sender");
-                              console.log(Belt_Option.getWithDefault(Belt_Option.flatMap(Js_dict.get(messageObj, "from"), Js_json.decodeString), "Unknown"));
+                              console.log("Message successfully decrypted : " + Bytes.to_string(decryptedMessage));
                               setUnreadMessages(function (prevUnread) {
                                     var newUnreadMessages = Js_dict.fromArray(Js_dict.entries(prevUnread));
                                     var count = Js_dict.get(newUnreadMessages, sender);
@@ -149,8 +146,7 @@ function ChatBox(props) {
                     case "publicKeyRequestResponse" :
                         var theirPubKey = Belt_Option.getWithDefault(Belt_Option.flatMap(Js_dict.get(messageObj, "publicKeyInfo"), Js_json.decodeString), "");
                         var username = Belt_Option.getWithDefault(Belt_Option.flatMap(Js_dict.get(messageObj, "from"), Js_json.decodeString), "Unknown");
-                        console.log("Received public key");
-                        console.log("From user: " + username);
+                        console.log("Received public key of user : " + username);
                         performKeyExchange(username, theirPubKey, ws).then(function () {
                               return Promise.resolve();
                             });
@@ -219,6 +215,7 @@ function ChatBox(props) {
           messageData["nonce"] = response[0];
           if (socket !== undefined) {
             Caml_option.valFromOption(socket).send(JSON.stringify(messageData));
+            console.log("Sent encrypted message");
             setMessages(function (prev) {
                   var newMessage = {
                     msg_type: "PrivateChat",
@@ -263,7 +260,7 @@ function ChatBox(props) {
                                                               var match = Js_dict.get(sharedKeysRef.current, user);
                                                               if (match === undefined) {
                                                                 if (socket !== undefined) {
-                                                                  console.log("Requesting public key for user: " + user);
+                                                                  console.log("Requesting public key for user : " + user);
                                                                   getPublicKey(user);
                                                                   return setSelectedUser(function (param) {
                                                                               return user;

@@ -19,10 +19,8 @@ wss.on('connection', (ws) => {
           clients.set(ws, messageData.username);
           
           // Store public key 
-          console.log("SENT login pub key: ")
-          //console.log(messageData.pubKey)
+          console.log("RECEIVED login pub key FOR", messageData.username)
           publicKeys.set(messageData.username, messageData.pubKey);
-          //console.log(publicKeys)
           
           // Broadcast the updated user list to all clients
           broadcastUserList();
@@ -40,6 +38,7 @@ wss.on('connection', (ws) => {
                 nonce: messageData.nonce,
                 timestamp: messageData.timestamp
               }));
+              console.log("Sent private message to :", messageData.to);
             }
           });
           break;
@@ -53,6 +52,7 @@ wss.on('connection', (ws) => {
                 from: messageData.from,
                 encryptedSharedKey: messageData.encryptedSharedKey
               }));
+              console.log("Sent key request message to :", messageData.to);
             }
           });
           break;
@@ -61,13 +61,12 @@ wss.on('connection', (ws) => {
           // Send public key info to the client
           clients.forEach((username, client) => {
             if (username === messageData.from && client.readyState === WebSocket.OPEN) {
-              console.log('Sending public key info to:', messageData.from);
               client.send(JSON.stringify({
                 type: 'publicKeyRequestResponse',
                 from: messageData.to,
                 publicKeyInfo: publicKeys.get(messageData.to)
               }));
-              //console.log('Public key:', publicKeys.get(messageData.to));
+              console.log("Sending public key info to : ", messageData.from);
             }
           });
           break;
@@ -83,7 +82,6 @@ wss.on('connection', (ws) => {
     const username = clients.get(ws);
     clients.delete(ws);
 
-    // TODO : Remove public key info from all clients
     publicKeys.delete(username);
     
     // Broadcast updated user list

@@ -59,8 +59,6 @@ function generate_keypair_for_new_user() {
 }
 
 function decrypt_recieved_shared_key(my_priv_key, cipher) {
-  console.log("Received private key in function: ", my_priv_key);
-  console.log("Received cipher in function: ", cipher);
   return KyberKEM.decrypt(my_priv_key, cipher);
 }
 
@@ -81,8 +79,6 @@ async function create_crypto_key(shared_key) {
 }
 
 async function encrypt_message(shared_key, message) {
-  console.log("Encrypting message with shared key: ", shared_key);
-  console.log("Message to encrypt: ", message);
   try {
     var shared_crypto_key = await create_crypto_key(shared_key);
     var nonce = window.crypto.getRandomValues(new Uint8Array(12));
@@ -106,9 +102,6 @@ async function encrypt_message(shared_key, message) {
 }
 
 async function decrypt_message(shared_key, nonce, cipher) {
-  console.log("Decrypting message with shared key in function: ", shared_key);
-  console.log("Nonce in function: ", nonce);
-  console.log("Cipher in function: ", cipher);
   try {
     var shared_crypto_key = await create_crypto_key(shared_key);
     var nonce_array = bytesToArrayBuffer(Bytes.of_string(nonce));
