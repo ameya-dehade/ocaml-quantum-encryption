@@ -3,10 +3,10 @@ Quantum Encryption Chat Application for Functional Programming Final Project.
 
 Implementation of a Rescript Chat App that uses the Kyber Algorithm for key exchange, and uses AES-GCM for subsequent message encryption. This repository has two parts:
 
-1. Encryption library <br>
+1. **Encryption library** <br>
    a. Kyber.ml - Contains all the logic for the Kyber's Key Generation, Encryption and Decryption, along with implementations for the Polynomial and Polynomial Matrices that are used.<br>
    b. Chat_encryption.ml - Abstracts away the Kyber algorithm into an interface that can be used by the chat application without caring about the underlying key exchange algorithm or message encryption algorithm
-2. Application<br>
+2. **Application** <br>
    a. TODO<br>
    b. TODO
 
