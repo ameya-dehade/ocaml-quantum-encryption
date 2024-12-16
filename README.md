@@ -20,7 +20,7 @@ Implementation of a Rescript Chat App that uses the Kyber Algorithm for key exch
 1. Extensive test suite that checks all functions in the supporting Polynomial and Polynomial Matrix library, along with the Kyber and Chat Encryption logic.
 2. ```Test Coverage: 243/258 (94.19%)```
 
-### Instruction to run
+### Instructions to build and test
 1. Build project - dune build
 2. Test project - dune test
 
