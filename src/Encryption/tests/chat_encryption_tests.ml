@@ -3,7 +3,7 @@ open Chat_encryption
 
 let () = ChatEncryption.randomness_setup ()
 
-  (* Simulate the establishment of communication between user1 and user2, and then an exchange of messages *)
+(* Simulate the establishment of communication between user1 and user2, and then an exchange of messages *)
 let test_full_workflow _ =
   (* When user is created, keypairs are generated *)
   let (_user1_pub_key, _user1_priv_key) = ChatEncryption.generate_keypair_for_new_user () in
@@ -20,7 +20,7 @@ let test_full_workflow _ =
   | Ok decrypted_message -> assert_equal message decrypted_message
   | Error _ -> assert_failure "Decryption failed"
 
-  let chat_encryption_suite =
+let chat_encryption_suite =
   "ChatEncryption Tests" >::: [
     "test_full_workflow" >:: test_full_workflow
   ]

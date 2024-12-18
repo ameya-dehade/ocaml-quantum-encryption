@@ -1,14 +1,13 @@
 (rule
-  (target project.zip)
-  (deps
-    src/Encryption/chat_encryption/chat_encryption.ml
-    src/Encryption/kyber-KEM/kyber.ml
-    src/Encryption/tests/kyber_tests.ml
-    demo/owldemo.ml
-    demo/zarithdemo.ml
-    demo/polynomialsffdemo.ml
-    demo/miragecryptodemo.ml
-    demo/dune
-  )
-  (action
-    (run zip -R project.zip %{deps})))
+ (target project.zip)
+ (deps
+  src/Encryption/chat_encryption/chat_encryption.ml
+  src/Encryption/kyber-KEM/kyber.ml
+  src/Encryption/tests/kyber_tests.ml
+  demo/owldemo.ml
+  demo/zarithdemo.ml
+  demo/polynomialsffdemo.ml
+  demo/miragecryptodemo.ml
+  demo/dune)
+ (action
+  (run zip -R project.zip %{deps})))

@@ -126,8 +126,8 @@ module Make_polynomial (C : Kyber_Config_sig) : Polynomial_t = struct
 
   let mul (p1 : t)(p2 : t) : t =
     let rec front_add a b = match a, b with
-    | [], r | r, [] -> r
-    | x::xs, y::ys -> (x + y) :: front_add xs ys
+      | [], r | r, [] -> r
+      | x::xs, y::ys -> (x + y) :: front_add xs ys
     in
     let rec mul_acc acc p q d = match p with
       | [] -> acc
@@ -175,8 +175,8 @@ module Make_polynomial (C : Kyber_Config_sig) : Polynomial_t = struct
   let binary_to_poly (message : bytes) : t =
     let byte_to_bits byte =
       List.init 8 ~f:(fun i -> 
-        if (int_of_char byte land (1 lsl (7 - i))) <> 0 then 1 else 0
-      )
+          if (int_of_char byte land (1 lsl (7 - i))) <> 0 then 1 else 0
+        )
     in
     let bytes_list = List.init (Bytes.length message) ~f:(fun i -> Bytes.get message i) in
     List.concat (List.map ~f:byte_to_bits bytes_list)
@@ -196,12 +196,12 @@ module Make_polynomial (C : Kyber_Config_sig) : Polynomial_t = struct
     bytes
 
   let from_coefficients coeffs = coeffs
-  
+
   let to_coefficients p = p
 
   let to_string p =
     String.concat ~sep:" " (List.map ~f:string_of_int p)
-  
+
   let from_string s =
     s 
     |> String.split_on_chars ~on:[' ']
@@ -249,21 +249,21 @@ module Make_poly_mat (P : Polynomial_t) = struct
 
   let transpose (mat : t) : t =
     List.init (List.length (List.hd_exn mat)) ~f:(fun i ->
-      List.init (List.length mat) ~f:(fun j ->
-        List.nth_exn (List.nth_exn mat j) i
+        List.init (List.length mat) ~f:(fun j ->
+            List.nth_exn (List.nth_exn mat j) i
+          )
       )
-    )
   let dot_product (row : P.t list) (col : P.t list) : P.t =
     List.fold2_exn ~f:(fun acc p1 p2 -> P.add acc (P.mul p1 p2)) ~init:P.zero row col
     |> P.reduce
 
   let mul (m1 : t) (m2 : t) : t =
     List.init (List.length m1)~f:(fun i ->
-      List.init (List.length (List.hd_exn m2)) ~f:(fun j ->
-        dot_product (List.nth_exn m1 i) (List.nth_exn (transpose m2) j)
+        List.init (List.length (List.hd_exn m2)) ~f:(fun j ->
+            dot_product (List.nth_exn m1 i) (List.nth_exn (transpose m2) j)
+          )
       )
-    )
-  
+
   let reduce_matrix (mat : t) : t =
     List.map ~f:(List.map ~f:P.reduce) mat
 
@@ -278,17 +278,17 @@ module Make_poly_mat (P : Polynomial_t) = struct
 
   let set_poly (mat : t) (i : int) (j : int) (poly : P.t) : t =
     List.mapi ~f:(fun row_index row ->
-      List.mapi ~f:(fun col_index p ->
-        if row_index = i && col_index = j then
-          poly
-        else
-          p
-      ) row
-    ) mat
+        List.mapi ~f:(fun col_index p ->
+            if row_index = i && col_index = j then
+              poly
+            else
+              p
+          ) row
+      ) mat
 
   let map_poly (f : P.t -> P.t) (mat : t) : t =
     List.map ~f:(List.map ~f) mat
-  
+
   let to_list (mat : t) : P.t list list =
     mat
 
@@ -300,8 +300,8 @@ module Make_poly_mat (P : Polynomial_t) = struct
 
   let to_string (mat : t) : string =
     match mat with
-  | [] -> ""
-  | rows -> 
+    | [] -> ""
+    | rows -> 
       rows 
       |> List.map ~f:(fun row -> 
           row 
@@ -362,7 +362,7 @@ module Make_Kyber (C : Kyber_Config_sig) : Kyber_t = struct
     let a = PolyMat.to_string (fst pub_key) in
     let t = PolyMat.to_string (snd pub_key) in
     a ^ "|" ^ t
-  
+
   let private_key_to_string (priv_key : private_key) : string =
     PolyMat.to_string priv_key
 
@@ -370,7 +370,7 @@ module Make_Kyber (C : Kyber_Config_sig) : Kyber_t = struct
     let u = PolyMat.to_string (fst cipher) in
     let v = PolyMat.to_string (snd cipher) in
     u ^ "|" ^ v
-  
+
   let public_key_from_string (s : string) : public_key =
     let split = String.split_on_chars ~on:['|'] s in
     let a = PolyMat.from_string (List.nth_exn split 0) in
@@ -379,7 +379,7 @@ module Make_Kyber (C : Kyber_Config_sig) : Kyber_t = struct
 
   let private_key_from_string (s : string) : private_key =
     PolyMat.from_string s
-  
+
   let ciphertext_from_string (s : string) : ciphertext =
     let split = String.split_on_chars ~on:['|'] s in
     let u = PolyMat.from_string (List.nth_exn split 0) in
@@ -432,5 +432,5 @@ module Make_Kyber (C : Kyber_Config_sig) : Kyber_t = struct
     let result_poly = Polynomial.scalar_div ((q + 1) / 2) rounded_poly in
     let result = Polynomial.poly_to_binary result_poly in
     result
-  
+
 end

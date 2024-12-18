@@ -72,19 +72,19 @@ let test_polymat_zero _ =
 let test_polymat_add _ =
   (* Create two 2x2 matrices with known polynomials *)
   let m1 = PolyMat.from_list [
-    [Polynomial.from_coefficients [1; 2]; Polynomial.from_coefficients [3; 4]];
-    [Polynomial.from_coefficients [5; 6]; Polynomial.from_coefficients [7; 8]]
-  ] in
+      [Polynomial.from_coefficients [1; 2]; Polynomial.from_coefficients [3; 4]];
+      [Polynomial.from_coefficients [5; 6]; Polynomial.from_coefficients [7; 8]]
+    ] in
   let m2 = PolyMat.from_list [
-    [Polynomial.from_coefficients [1; 1]; Polynomial.from_coefficients [2; 2]];
-    [Polynomial.from_coefficients [3; 3]; Polynomial.from_coefficients [4; 4]]
-  ] in
-  
+      [Polynomial.from_coefficients [1; 1]; Polynomial.from_coefficients [2; 2]];
+      [Polynomial.from_coefficients [3; 3]; Polynomial.from_coefficients [4; 4]]
+    ] in
+
   let expected = PolyMat.from_list [
-    [Polynomial.from_coefficients [2; 3]; Polynomial.from_coefficients [5; 6]];
-    [Polynomial.from_coefficients [8; 9]; Polynomial.from_coefficients [11; 12]]
-  ] in
-  
+      [Polynomial.from_coefficients [2; 3]; Polynomial.from_coefficients [5; 6]];
+      [Polynomial.from_coefficients [8; 9]; Polynomial.from_coefficients [11; 12]]
+    ] in
+
   let result = PolyMat.add m1 m2 in
   assert_equal expected result
 
@@ -92,29 +92,29 @@ let test_polymat_add _ =
 let test_polymat_sub _ =
   (* Create two 2x2 matrices with known polynomials *)
   let m1 = PolyMat.from_list [
-    [Polynomial.from_coefficients [1; 2]; Polynomial.from_coefficients [3; 4]];
-    [Polynomial.from_coefficients [5; 6]; Polynomial.from_coefficients [7; 8]]
-  ] in
+      [Polynomial.from_coefficients [1; 2]; Polynomial.from_coefficients [3; 4]];
+      [Polynomial.from_coefficients [5; 6]; Polynomial.from_coefficients [7; 8]]
+    ] in
   let m2 = PolyMat.from_list [
-    [Polynomial.from_coefficients [1; 1]; Polynomial.from_coefficients [2; 2]];
-    [Polynomial.from_coefficients [3; 3]; Polynomial.from_coefficients [4; 4]]
-  ] in
-  
+      [Polynomial.from_coefficients [1; 1]; Polynomial.from_coefficients [2; 2]];
+      [Polynomial.from_coefficients [3; 3]; Polynomial.from_coefficients [4; 4]]
+    ] in
+
   (* Expected result after subtraction *)
   let expected = [
     [Polynomial.from_coefficients [0; 1]; Polynomial.from_coefficients [1; 2]];
     [Polynomial.from_coefficients [2; 3]; Polynomial.from_coefficients [3; 4]]
   ] in
-  
+
   (* Perform matrix subtraction *)
   let result = PolyMat.sub m1 m2 in
   assert_equal expected (PolyMat.to_list result)
 
 let test_polymat_scalar_mul _ =
   let m1 = PolyMat.from_list [
-    [Polynomial.from_coefficients [1; 2]; Polynomial.from_coefficients [3; 4]];
-    [Polynomial.from_coefficients [5; 6]; Polynomial.from_coefficients [7; 8]]
-  ] in
+      [Polynomial.from_coefficients [1; 2]; Polynomial.from_coefficients [3; 4]];
+      [Polynomial.from_coefficients [5; 6]; Polynomial.from_coefficients [7; 8]]
+    ] in
   let scalar = 2 in
   let expected = [
     [Polynomial.from_coefficients [2; 4]; Polynomial.from_coefficients [6; 8]];
@@ -125,11 +125,11 @@ let test_polymat_scalar_mul _ =
 
 let test_polymat_mul_trivial_singleton _= 
   let m1 = PolyMat.from_list [
-    [Polynomial.from_coefficients [1; 0; 4; 21]]
-  ] in
+      [Polynomial.from_coefficients [1; 0; 4; 21]]
+    ] in
   let m2 = PolyMat.from_list [
-    [Polynomial.from_coefficients [3; 1; 2]]
-  ] in
+      [Polynomial.from_coefficients [3; 1; 2]]
+    ] in
   let expected = [
     [Polynomial.from_coefficients [14; 16; 9; 7]]
   ] in
@@ -141,13 +141,13 @@ let test_polymat_mul_trivial_singleton _=
 let test_polymat_mul_square_and_singleline_matrix _ = 
   (* Create a 2x2 matrix and a 1x2 matrix with known polynomials *)
   let m1 = PolyMat.from_list [
-    [Polynomial.from_coefficients [6; 16; 16; 11]; Polynomial.from_coefficients [9; 4; 6; 3]];
-    [Polynomial.from_coefficients [5; 3; 10; 1]; Polynomial.from_coefficients [6; 1; 9; 15]]
-  ] in
+      [Polynomial.from_coefficients [6; 16; 16; 11]; Polynomial.from_coefficients [9; 4; 6; 3]];
+      [Polynomial.from_coefficients [5; 3; 10; 1]; Polynomial.from_coefficients [6; 1; 9; 15]]
+    ] in
   let m2 = PolyMat.from_list [
-    [Polynomial.from_coefficients [-1; -1; 1; 0]];
-    [Polynomial.from_coefficients [-1; 0; -1; 0]]
-  ] in
+      [Polynomial.from_coefficients [-1; -1; 1; 0]];
+      [Polynomial.from_coefficients [-1; 0; -1; 0]]
+    ] in
   let expected = [
     [Polynomial.from_coefficients [16; 14; 0; 7]];
     [Polynomial.from_coefficients [10; 11; 12; 6]]
@@ -159,20 +159,20 @@ let test_polymat_mul_square_and_singleline_matrix _ =
 let test_polymat_mul_square_matrix _ =
   (* Create two 2x2 matrices with known polynomials *)
   let m1 = PolyMat.from_list [
-    [Polynomial.from_coefficients [1; 2]; Polynomial.from_coefficients [3; 4]];
-    [Polynomial.from_coefficients [5; 6]; Polynomial.from_coefficients [7; 8]]
-  ] in
+      [Polynomial.from_coefficients [1; 2]; Polynomial.from_coefficients [3; 4]];
+      [Polynomial.from_coefficients [5; 6]; Polynomial.from_coefficients [7; 8]]
+    ] in
   let m2 = PolyMat.from_list [
-    [Polynomial.from_coefficients [1; 1]; Polynomial.from_coefficients [2; 2]];
-    [Polynomial.from_coefficients [3; 3]; Polynomial.from_coefficients [4; 4]]
-  ] in
-  
+      [Polynomial.from_coefficients [1; 1]; Polynomial.from_coefficients [2; 2]];
+      [Polynomial.from_coefficients [3; 3]; Polynomial.from_coefficients [4; 4]]
+    ] in
+
   (* Expected result after multiplication *)
   let expected = [
     [Polynomial.from_coefficients [10; 7; 14]; Polynomial.from_coefficients [14; 0; 3]];
     [Polynomial.from_coefficients [9; 5; 13]; Polynomial.from_coefficients [4; 14; 10]]
   ] in
-  
+
   (* Perform matrix multiplication *)
   let result = PolyMat.mul m1 m2 in
   assert_equal expected (PolyMat.to_list result)
