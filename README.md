@@ -7,17 +7,28 @@ Implementation of a Rescript Chat App that uses the Kyber Algorithm for key exch
    a. Kyber.ml - Contains all the logic for the Kyber's Key Generation, Encryption and Decryption, along with implementations for the Polynomial and Polynomial Matrices that are used.<br>
    b. Chat_encryption.ml - Abstracts away the Kyber algorithm into an interface that can be used by the chat application without caring about the underlying key exchange algorithm or message encryption algorithm
 2. **Application** <br>
-   a. TODO<br>
-   b. TODO<br>
-   .<br>
-   .<br>
-   .
+   a. App.res - Entry point of chat application, manages application's main state (username) and controls navigation between login and chat interface<br>
+   b. Login.res - Handles login UI and functionality. Accepts username from user and submits to main application state to initiate chat<br>
+   c. ChatBox.res - Core chat interface. Displays list of online users, handles user selection, and manages sending and receiving encrypted messages via WebSockets<br>
+   d. ChatInput.res - Reusable component for typing and sending messages<br>
+   e. MessageType.res - Defines the types and structures for various message formats exchanged in the app<br>
+   f. WebSocket.res - Manages WebSocket connections handling events like onMessage, onOpen, and onClose<br>
+   g. server.js - WebSocket server that facilitates communication between clients. Manages connected users, handles private messaging, broadcasts the user list, and manages the public key distribution for encryption
 
 ## Applicaton
 ### Instructions to run
-TODO
+1. Navigate to the chat-app directory and run "npm install"<br>
+2. Navigate to the websocket-server directory and run "npm install"<br>
+3. In one terminal window navigate to the chat-app directory and run "npm run res:dev"<br>
+4. In a seperate terminal window naviage to the chat-app directory and run "npm run dev"<br>
+5. In a seperate terminal window navigate to the src folder inside websocket-server and run "node server.js"<br>
+6. Open your browser and go to the local host link and log in and start chatting. 
 ### Features
-TODO
+   a. Log in page<br>
+   b. Dynamic user list<br>
+   c. Encrypted Private messaging<br>
+   d. Message notification and counter of unseen messages per user<br>
+   e. User-Friendly Interface
 
 ## Algorithm
 ### Overview of Kyber
