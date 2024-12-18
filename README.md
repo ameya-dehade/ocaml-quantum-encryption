@@ -16,7 +16,7 @@ Implementation of a Rescript Chat App that uses the Kyber Algorithm for key exch
    g. server.js - WebSocket server that facilitates communication between clients. Manages connected users, handles private messaging, broadcasts the user list, and manages the public key distribution for encryption
 
 ## Applicaton
-### Instructions to run
+### Instructions to run (Application folder)
 1. Navigate to the chat-app directory and run "npm install"<br>
 2. Navigate to the websocket-server directory and run "npm install"<br>
 3. In one terminal window navigate to the chat-app directory and run "npm run res:dev"<br>
