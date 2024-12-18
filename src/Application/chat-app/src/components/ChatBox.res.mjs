@@ -73,6 +73,12 @@ function ChatBox(props) {
     }
     console.log("WebSocket not connected");
   };
+  var formatTimestamp = function (isoString) {
+    var date = new Date(isoString);
+    var hours = String(date.getHours() | 0).length === 1 ? "0" + String(date.getHours() | 0) : String(date.getHours() | 0);
+    var minutes = String(date.getMinutes() | 0).length === 1 ? "0" + String(date.getMinutes() | 0) : String(date.getMinutes() | 0);
+    return hours + ":" + minutes;
+  };
   React.useEffect((function () {
           if (socket === undefined) {
             var ws = new WebSocket("ws://localhost:8080");
@@ -325,7 +331,7 @@ function ChatBox(props) {
                                                                           className: "text-gray-800"
                                                                         }),
                                                                     JsxRuntime.jsx("div", {
-                                                                          children: msg.timestamp,
+                                                                          children: formatTimestamp(msg.timestamp),
                                                                           className: "text-xs text-gray-500 mt-1"
                                                                         })
                                                                   ],

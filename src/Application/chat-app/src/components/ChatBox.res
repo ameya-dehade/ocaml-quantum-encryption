@@ -41,6 +41,28 @@ let make = (~currentUser: string) => {
     }
   }
 
+  let formatTimestamp = (isoString: string) => {
+    let date = Js.Date.fromString(isoString);
+    let hours = 
+      date->Js.Date.getHours
+      ->Belt.Float.toInt
+      ->Belt.Int.toString
+      ->Js.String2.length == 1 
+        ? "0" ++ date->Js.Date.getHours->Belt.Float.toInt->Belt.Int.toString 
+        : date->Js.Date.getHours->Belt.Float.toInt->Belt.Int.toString;
+    
+    let minutes = 
+      date->Js.Date.getMinutes
+      ->Belt.Float.toInt
+      ->Belt.Int.toString
+      ->Js.String2.length == 1 
+        ? "0" ++ date->Js.Date.getMinutes->Belt.Float.toInt->Belt.Int.toString 
+        : date->Js.Date.getMinutes->Belt.Float.toInt->Belt.Int.toString;
+    
+    hours ++ ":" ++ minutes
+  }
+
+
   React.useEffect1(() => {
     switch socket {
     | None => {
@@ -356,7 +378,9 @@ let make = (~currentUser: string) => {
                     {React.string(msg.from ++ ":")}
                   </div>
                   <div className="text-gray-800">{React.string(msg.message)}</div>
-                  <div className="text-xs text-gray-500 mt-1">{React.string(msg.timestamp)}</div>
+                  <div className="text-xs text-gray-500 mt-1">
+                    {React.string(formatTimestamp(msg.timestamp))}
+                  </div>
                 </div>
               )
               ->React.array
